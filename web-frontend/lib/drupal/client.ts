@@ -1,18 +1,23 @@
-import { auth } from '@/auth';
+import { cookies } from 'next/headers';
+import { decode } from 'next-auth/jwt';
 
 /**
  * Cliente HTTP server-side para a API JSON:API do Drupal.
  *
  * - Anônimo: chamadas sem token (lotes públicos).
- * - Autenticado: lê o JWT da sessão NextAuth e envia Bearer. O módulo
- *   custom porto_auth no Drupal valida o JWT, auto-provisiona o usuário
- *   se necessário e injeta a sessão na requisição.
+ * - Autenticado: descriptografa o cookie de sessão do NextAuth, extrai o
+ *   `drupalJwt` que foi atrelado no callback `jwt()` e envia como Bearer.
  *
- * NUNCA chame este módulo a partir de Client Components — o JWT precisa
- * ficar no servidor.
+ * NÃO importar este módulo a partir de Client Components — o segredo
+ * `AUTH_SECRET` é usado para descriptografar o cookie e precisa ficar
+ * exclusivamente no servidor.
  */
 
 const BASE = process.env.DRUPAL_BASE_URL ?? 'https://porto-das-oliveiras.ddev.site';
+
+const COOKIE_NAME = process.env.NODE_ENV === 'production'
+  ? '__Secure-authjs.session-token'
+  : 'authjs.session-token';
 
 type Opcoes = RequestInit & {
   autenticado?: boolean;
@@ -20,22 +25,19 @@ type Opcoes = RequestInit & {
 };
 
 async function obterDrupalJwt(): Promise<string | null> {
-  // `auth()` retorna a sessão. O JWT do Drupal vive no token interno
-  // do NextAuth, exposto via `getToken` em ambientes server.
-  const sessao = await auth();
-  if (!sessao?.user) return null;
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) return null;
 
-  // O JWT propriamente dito está no objeto token (não no objeto session
-  // exposto ao cliente). Acessamos via cookie raw.
-  const { cookies } = await import('next/headers');
-  const { getToken } = await import('next-auth/jwt');
-  const token = await getToken({
-    req: { headers: { cookie: cookies().toString() } } as never,
-    secret: process.env.AUTH_SECRET,
-    secureCookie: process.env.NODE_ENV === 'production',
-  });
+  const sessionToken = cookies().get(COOKIE_NAME)?.value;
+  if (!sessionToken) return null;
 
-  return (token?.drupalJwt as string | undefined) ?? null;
+  try {
+    const payload = await decode({ token: sessionToken, secret, salt: COOKIE_NAME });
+    const jwt = payload?.drupalJwt;
+    return typeof jwt === 'string' ? jwt : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function drupalFetch<T>(caminho: string, opcoes: Opcoes = {}): Promise<T> {
@@ -55,7 +57,12 @@ export async function drupalFetch<T>(caminho: string, opcoes: Opcoes = {}): Prom
   const resposta = await fetch(`${BASE}${caminho}`, {
     ...resto,
     headers: cabecalhos,
-    next: revalidate === false ? { revalidate: false } : revalidate !== undefined ? { revalidate } : undefined,
+    next:
+      revalidate === false
+        ? { revalidate: false }
+        : revalidate !== undefined
+          ? { revalidate }
+          : undefined,
   });
 
   if (!resposta.ok) {

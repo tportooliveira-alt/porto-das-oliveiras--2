@@ -1,0 +1,4 @@
+# Defaults instalados quando o módulo é habilitado.
+# Sobrescrever em produção via UI ou drush config:set.
+base_uri: ''
+credentials_key_id: 'porto_banking_oauth'

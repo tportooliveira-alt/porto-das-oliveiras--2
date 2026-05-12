@@ -97,21 +97,25 @@ foreach ([
 }
 
 // =====================================================================
-// PARCELA
+// PARCELA — reusa storages de field_cliente, field_numero, field_valor
+// (Drupal suporta o mesmo storage em múltiplos bundles desde que o tipo
+// seja idêntico). O instance é por bundle, com label/required próprios.
 // =====================================================================
 foreach ([
-  ['storage' => ['field_name' => 'field_contrato',         'entity_type' => 'node', 'type' => 'entity_reference', 'cardinality' => 1,
+  ['storage' => ['field_name' => 'field_contrato', 'entity_type' => 'node', 'type' => 'entity_reference', 'cardinality' => 1,
                  'settings' => ['target_type' => 'node']],
    'field'   => ['bundle' => 'parcela', 'label' => 'Contrato', 'required' => true,
                  'settings' => ['handler' => 'default:node', 'handler_settings' => ['target_bundles' => ['contrato' => 'contrato']]]]],
-  // Denormalizado para Contextual Filter mais simples na View "Minhas Parcelas".
-  ['storage' => ['field_name' => 'field_cliente_parcela',  'entity_type' => 'node', 'type' => 'entity_reference', 'cardinality' => 1,
+  // Reusa o storage field_cliente criado para Contrato.
+  ['storage' => ['field_name' => 'field_cliente', 'entity_type' => 'node', 'type' => 'entity_reference', 'cardinality' => 1,
                  'settings' => ['target_type' => 'user']],
    'field'   => ['bundle' => 'parcela', 'label' => 'Cliente', 'required' => true,
                  'settings' => ['handler' => 'default:user']]],
-  ['storage' => ['field_name' => 'field_numero_parcela',   'entity_type' => 'node', 'type' => 'integer', 'cardinality' => 1, 'settings' => []],
+  // Reusa o storage field_numero criado para Lote.
+  ['storage' => ['field_name' => 'field_numero', 'entity_type' => 'node', 'type' => 'integer', 'cardinality' => 1, 'settings' => []],
    'field'   => ['bundle' => 'parcela', 'label' => 'Nº da parcela', 'required' => true]],
-  ['storage' => ['field_name' => 'field_valor_parcela',    'entity_type' => 'node', 'type' => 'decimal', 'cardinality' => 1,
+  // Reusa o storage field_valor criado para Lote (já existe via config/sync).
+  ['storage' => ['field_name' => 'field_valor', 'entity_type' => 'node', 'type' => 'decimal', 'cardinality' => 1,
                  'settings' => ['precision' => 12, 'scale' => 2]],
    'field'   => ['bundle' => 'parcela', 'label' => 'Valor (R$)', 'required' => true]],
   ['storage' => ['field_name' => 'field_vencimento',       'entity_type' => 'node', 'type' => 'datetime', 'cardinality' => 1,

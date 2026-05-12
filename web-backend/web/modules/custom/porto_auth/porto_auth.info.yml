@@ -6,4 +6,3 @@ package: 'Porto das Oliveiras'
 dependencies:
   - drupal:user
   - drupal:key
-  - jwt:jwt

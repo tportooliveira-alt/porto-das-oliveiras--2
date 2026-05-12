@@ -27,21 +27,30 @@ ddev composer install
 # Primeira instalação (não tem config exportada ainda):
 ddev drush site:install standard --site-name="Porto das Oliveiras" -y
 # Habilitar módulos contrib + custom:
-ddev drush en jsonapi_extras jsonapi_views jsonapi_role_access jwt key restui pathauto entity_print porto_auth porto_banking -y
-# Importar Content Types versionados:
+ddev drush en jsonapi_extras jsonapi_views jsonapi_role_access key restui pathauto entity_print porto_auth porto_banking -y
+# Criar Content Types (lote, contrato, parcela) + roles versionados.
+# --partial ignora YAMLs com UUIDs faltantes — OK no primeiro boot.
 ddev drush config:import -y --partial --source=../config/sync
-# Criar campos restantes via script:
+# Criar os ~17 campos restantes via API:
 ddev drush scr scripts/bootstrap-content-model.php
+# Agora exportar tudo (com UUIDs gerados) para o config/sync — daqui em
+# diante o repo passa a ser fonte da verdade.
 ddev drush config:export -y
 ```
 
 ### 2. Chave JWT compartilhada
 
 ```powershell
-# Gerar segredo:
+# Gerar segredo (mínimo 32 chars para HS256):
 $segredo = -join ((48..57)+(65..90)+(97..122) | Get-Random -Count 48 | ForEach-Object {[char]$_})
-# Salvar no Key module (Drupal):
-ddev drush key:create porto_frontend_jwt --key_value="$segredo" --key_type=authentication
+# Criar a Key no Drupal:
+#  - key_type=authentication aceita texto livre (simples).
+#  - key_provider=config armazena no banco em campo encriptado.
+ddev drush key:create porto_frontend_jwt `
+  --key-type=authentication `
+  --key-provider=config `
+  --key-input=text_field `
+  --key-value="$segredo"
 # Anotar para colocar no .env.local do front:
 $segredo
 ```

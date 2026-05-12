@@ -1,0 +1,10 @@
+porto_banking.settings:
+  type: config_object
+  label: 'Configurações da integração bancária'
+  mapping:
+    base_uri:
+      type: string
+      label: 'URL base da API bancária'
+    credentials_key_id:
+      type: string
+      label: 'ID da Key (módulo key) com client_id/client_secret OAuth'

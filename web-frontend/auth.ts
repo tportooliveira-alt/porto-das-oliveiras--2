@@ -11,7 +11,8 @@ import { SignJWT } from 'jose';
  *  - Após o sign-in, geramos um JWT HS256 assinado com segredo compartilhado
  *    com o Drupal. O Drupal valida esse JWT na chamada JSON:API e
  *    auto-provisiona o usuário (módulo custom porto_auth) caso ainda não exista.
- *  - O token é guardado no objeto de sessão e usado por chamadas server-side.
+ *  - O JWT do Drupal fica no token interno do NextAuth (cookie criptografado),
+ *    NÃO é exposto no objeto session retornado ao client.
  */
 
 const DRUPAL_JWT_AUDIENCE = 'drupal';
@@ -20,7 +21,7 @@ const DRUPAL_JWT_TTL_SEC  = 60 * 60; // 1h
 
 async function mintDrupalJwt(profile: {
   email: string;
-  name?: string | null;
+  name: string | null;
   provider: string;
 }): Promise<string> {
   const secret = process.env.DRUPAL_JWT_SECRET;
@@ -41,6 +42,26 @@ async function mintDrupalJwt(profile: {
     .sign(chave);
 }
 
+/**
+ * Microsoft Entra ID devolve o email em `email` (contas pessoais) ou
+ * `preferred_username` (contas corporativas). Normalizamos aqui.
+ */
+function extrairEmail(profile: unknown): string | null {
+  if (!profile || typeof profile !== 'object') return null;
+  const p = profile as Record<string, unknown>;
+  const candidato = (typeof p.email === 'string' && p.email)
+    || (typeof p.preferred_username === 'string' && p.preferred_username)
+    || null;
+  return candidato && candidato.includes('@') ? candidato : null;
+}
+
+function extrairNome(profile: unknown): string | null {
+  if (!profile || typeof profile !== 'object') return null;
+  const p = profile as Record<string, unknown>;
+  if (typeof p.name === 'string' && p.name) return p.name;
+  return null;
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Google({
@@ -51,7 +72,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientId:     process.env.AUTH_MICROSOFT_ENTRA_ID_ID,
       clientSecret: process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET,
       // "common" aceita contas pessoais (Hotmail/Outlook) E corporativas.
-      issuer: process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER,
+      // Em produção, use o tenant ID específico se quiser restringir.
+      issuer: `https://login.microsoftonline.com/${process.env.AUTH_MICROSOFT_ENTRA_ID_TENANT ?? 'common'}/v2.0`,
     }),
   ],
   pages: {
@@ -60,24 +82,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: 'jwt' },
   callbacks: {
     async signIn({ profile }) {
-      // Apenas exigimos um email verificado (ambos provedores entregam isso).
-      return Boolean(profile?.email);
+      return extrairEmail(profile) !== null;
     },
 
     async jwt({ token, account, profile }) {
-      // Roda no sign-in inicial: gera o JWT para o Drupal e anexa ao token.
-      if (account && profile?.email) {
-        token.email = profile.email;
-        token.name  = profile.name ?? null;
-        token.drupalJwt = await mintDrupalJwt({
-          email: profile.email,
-          name:  profile.name ?? null,
-          provider: account.provider,
-        });
-        token.drupalJwtExp = Math.floor(Date.now() / 1000) + DRUPAL_JWT_TTL_SEC;
+      // Sign-in inicial: anexa email/nome ao token e gera JWT para o Drupal.
+      if (account && profile) {
+        const email = extrairEmail(profile);
+        if (email) {
+          token.email = email;
+          token.name  = extrairNome(profile);
+          token.drupalJwt = await mintDrupalJwt({
+            email,
+            name: token.name ?? null,
+            provider: account.provider,
+          });
+          token.drupalJwtExp = Math.floor(Date.now() / 1000) + DRUPAL_JWT_TTL_SEC;
+        }
       }
 
-      // Renovação preguiçosa: se o JWT do Drupal está perto de expirar, refresca.
+      // Renovação preguiçosa quando faltam < 60s para expirar.
       const agora = Math.floor(Date.now() / 1000);
       const exp = typeof token.drupalJwtExp === 'number' ? token.drupalJwtExp : 0;
       if (token.email && exp - agora < 60) {
@@ -93,12 +117,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
 
     async session({ session, token }) {
-      // Não expomos o JWT do Drupal para o client; só dados úteis na UI.
-      session.user = {
-        ...session.user,
-        email: (token.email as string) ?? session.user?.email ?? '',
-        name:  (token.name as string | null) ?? session.user?.name ?? null,
-      };
+      // Apenas dados de UI. O drupalJwt fica no token (cookie), não aqui.
+      if (session.user) {
+        session.user.email = (token.email as string) ?? session.user.email ?? '';
+        session.user.name  = (token.name as string | null) ?? session.user.name ?? null;
+      }
       return session;
     },
   },

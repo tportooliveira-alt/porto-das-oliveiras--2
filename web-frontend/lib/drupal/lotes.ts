@@ -51,8 +51,10 @@ export async function listarLotes({ limit = 24, status }: ListarOpcoes = {}): Pr
 }
 
 export async function obterLotePorSlug(slug: string): Promise<Lote | null> {
+  // O Drupal JSON:API filtra o alias do path como subcampo: `path.alias`.
+  // O alias salvo no Drupal sempre começa com '/'.
   const params = new URLSearchParams();
-  params.set('filter[path][path]', `/${slug}`);
+  params.set('filter[path.alias]', `/${slug}`);
   params.set('page[limit]', '1');
 
   const resposta = await drupalFetch<JsonApiCollection<LoteAttrs>>(

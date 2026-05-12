@@ -15,7 +15,6 @@
         "drupal/jsonapi_extras": "^3.26",
         "drupal/jsonapi_role_access": "^1.0@alpha",
         "drupal/jsonapi_views": "^1.0@beta",
-        "drupal/jwt": "^2.1",
         "drupal/key": "^1.19",
         "drupal/pathauto": "^1.13",
         "drupal/queue_ui": "^3.2",

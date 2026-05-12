@@ -30,10 +30,9 @@ use Symfony\Component\HttpFoundation\Request;
  */
 final class JwtBridgeAuthenticator implements AuthenticationProviderInterface {
 
-  private const KEY_ID  = 'porto_frontend_jwt';
-  private const ISSUER  = 'porto-frontend';
-  private const AUD     = 'drupal';
-  private const ROLE_CLIENTE = 'authenticated';
+  private const KEY_ID = 'porto_frontend_jwt';
+  private const ISSUER = 'porto-frontend';
+  private const AUD    = 'drupal';
 
   private LoggerChannelInterface $logger;
 
@@ -79,7 +78,7 @@ final class JwtBridgeAuthenticator implements AuthenticationProviderInterface {
       return NULL;
     }
 
-    return $this->localizarOuCriarUsuario($email, (string) ($claims->name ?? $email));
+    return $this->localizarOuCriarUsuario($email);
   }
 
   private function obterSegredo(): ?string {
@@ -91,28 +90,24 @@ final class JwtBridgeAuthenticator implements AuthenticationProviderInterface {
     return is_string($valor) && $valor !== '' ? $valor : NULL;
   }
 
-  private function localizarOuCriarUsuario(string $email, string $nome): ?UserInterface {
+  private function localizarOuCriarUsuario(string $email): ?UserInterface {
     $storage = $this->entityTypeManager->getStorage('user');
     $existentes = $storage->loadByProperties(['mail' => $email]);
     /** @var \Drupal\user\UserInterface|null $usuario */
     $usuario = $existentes ? reset($existentes) : NULL;
 
     if ($usuario) {
-      if (!$usuario->isActive()) {
-        return NULL;
-      }
-      return $usuario;
+      return $usuario->isActive() ? $usuario : NULL;
     }
 
+    // Note: "authenticated" é role implícita — NÃO listar em 'roles'.
+    // Para promover a vendedor/financeiro, atribuir role depois pelo admin.
     $usuario = $storage->create([
       'name'   => $this->gerarUsernameUnico($email),
       'mail'   => $email,
-      'pass'   => NULL, // sem senha — só entra via JWT/social
       'status' => 1,
       'init'   => $email,
-      'roles'  => [self::ROLE_CLIENTE],
     ]);
-    $usuario->set('field_display_name', $nome);
     $usuario->save();
 
     $this->logger->info('Usuário auto-provisionado via JWT: @mail', ['@mail' => $email]);
