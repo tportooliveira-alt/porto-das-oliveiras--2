@@ -1,0 +1,20 @@
+langcode: pt-br
+status: true
+dependencies:
+  module:
+    - node
+    - jsonapi
+id: vendedor
+label: Vendedor
+weight: 4
+is_admin: false
+permissions:
+  - 'access content'
+  - 'access content overview'
+  - 'access toolbar'
+  - 'access user profiles'
+  - 'create lote content'
+  - 'edit any lote content'
+  - 'view any unpublished content'
+  - 'view own unpublished content'
+  - 'view contrato content'

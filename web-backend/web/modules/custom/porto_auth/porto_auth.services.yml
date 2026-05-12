@@ -1,0 +1,9 @@
+services:
+  porto_auth.jwt_authenticator:
+    class: Drupal\porto_auth\Authentication\JwtBridgeAuthenticator
+    arguments:
+      - '@key.repository'
+      - '@entity_type.manager'
+      - '@logger.factory'
+    tags:
+      - { name: authentication_provider, provider_id: porto_jwt, priority: 100, global: TRUE }

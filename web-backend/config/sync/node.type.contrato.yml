@@ -1,0 +1,12 @@
+langcode: pt-br
+status: true
+dependencies:
+  module:
+    - node
+name: Contrato
+type: contrato
+description: 'Vínculo entre Cliente (user) e Lote, com financeiro associado.'
+help: ''
+new_revision: true
+preview_mode: 1
+display_submitted: false

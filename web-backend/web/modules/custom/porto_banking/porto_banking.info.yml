@@ -1,0 +1,8 @@
+name: 'Porto Banking Integration'
+type: module
+description: 'Integração com API bancária para sincronização de boletos e extratos.'
+core_version_requirement: ^10 || ^11
+package: 'Porto das Oliveiras'
+dependencies:
+  - drupal:key
+  - drupal:advancedqueue

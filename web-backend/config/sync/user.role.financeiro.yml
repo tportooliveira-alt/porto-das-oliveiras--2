@@ -1,0 +1,21 @@
+langcode: pt-br
+status: true
+dependencies:
+  module:
+    - node
+    - porto_banking
+id: financeiro
+label: Financeiro
+weight: 5
+is_admin: false
+permissions:
+  - 'access content'
+  - 'access content overview'
+  - 'access toolbar'
+  - 'access user profiles'
+  - 'create parcela content'
+  - 'edit any parcela content'
+  - 'delete any parcela content'
+  - 'view any unpublished content'
+  - 'view contrato content'
+  - 'sync banking api'

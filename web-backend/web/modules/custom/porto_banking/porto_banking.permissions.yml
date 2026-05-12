@@ -1,0 +1,4 @@
+'sync banking api':
+  title: 'Disparar sincronização com a API bancária'
+  description: 'Permite acionar o job que importa boletos pagos do banco.'
+  restrict access: true

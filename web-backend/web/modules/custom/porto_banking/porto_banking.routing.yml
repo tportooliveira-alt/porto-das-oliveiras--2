@@ -1,0 +1,7 @@
+porto_banking.sync_boletos:
+  path: '/admin/porto/banking/sync'
+  defaults:
+    _controller: '\Drupal\porto_banking\Controller\SyncController::executar'
+    _title: 'Sincronizar boletos com o banco'
+  requirements:
+    _permission: 'sync banking api'

@@ -1,0 +1,78 @@
+{
+    "name": "porto/das-oliveiras",
+    "description": "Headless Drupal backend para o loteamento Porto das Oliveiras.",
+    "type": "project",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">=8.3",
+        "composer/installers": "^2.3",
+        "drupal/admin_toolbar": "^3.5",
+        "drupal/advancedqueue": "^1.0@beta",
+        "drupal/core-composer-scaffold": "^11",
+        "drupal/core-recommended": "^11",
+        "drupal/encrypt": "^3.2",
+        "drupal/entity_print": "^2.14",
+        "drupal/jsonapi_extras": "^3.26",
+        "drupal/jsonapi_role_access": "^1.0@alpha",
+        "drupal/jsonapi_views": "^1.0@beta",
+        "drupal/jwt": "^2.1",
+        "drupal/key": "^1.19",
+        "drupal/pathauto": "^1.13",
+        "drupal/queue_ui": "^3.2",
+        "drupal/real_aes": "^2.6",
+        "drupal/restui": "^1.22",
+        "drupal/token": "^1.15",
+        "drush/drush": "^13",
+        "dompdf/dompdf": "^3.0",
+        "firebase/php-jwt": "^6.10"
+    },
+    "require-dev": {
+        "drupal/core-dev": "^11"
+    },
+    "conflict": {
+        "drupal/drupal": "*"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true,
+            "drupal/core-composer-scaffold": true,
+            "drupal/core-project-message": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "phpstan/extension-installer": true,
+            "php-http/discovery": true,
+            "tbachert/spi": true,
+            "cweagans/composer-patches": true
+        },
+        "sort-packages": true
+    },
+    "extra": {
+        "drupal-scaffold": {
+            "locations": {
+                "web-root": "web/"
+            }
+        },
+        "installer-paths": {
+            "web/core": ["type:drupal-core"],
+            "web/libraries/{$name}": ["type:drupal-library"],
+            "web/modules/contrib/{$name}": ["type:drupal-module"],
+            "web/profiles/contrib/{$name}": ["type:drupal-profile"],
+            "web/themes/contrib/{$name}": ["type:drupal-theme"],
+            "drush/Commands/contrib/{$name}": ["type:drupal-drush"],
+            "web/modules/custom/{$name}": ["type:drupal-custom-module"],
+            "web/themes/custom/{$name}": ["type:drupal-custom-theme"]
+        }
+    },
+    "repositories": {
+        "drupal": {
+            "type": "composer",
+            "url": "https://packages.drupal.org/8"
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Drupal\\porto\\": "web/modules/custom/"
+        }
+    }
+}

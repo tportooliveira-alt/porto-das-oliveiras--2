@@ -1,0 +1,12 @@
+langcode: pt-br
+status: true
+dependencies:
+  module:
+    - node
+name: Parcela
+type: parcela
+description: 'Item de cronograma financeiro vinculado a um Contrato.'
+help: ''
+new_revision: true
+preview_mode: 1
+display_submitted: false

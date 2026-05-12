@@ -1,0 +1,28 @@
+name: porto-das-oliveiras
+type: drupal11
+docroot: web
+php_version: "8.3"
+webserver_type: nginx-fpm
+xdebug_enabled: false
+additional_hostnames: []
+additional_fqdns: []
+database:
+  type: mariadb
+  version: "10.11"
+use_dns_when_possible: true
+composer_version: "2"
+web_environment: []
+nodejs_version: "20"
+default_container_timeout: "120"
+disable_settings_management: false
+performance_mode: "global"
+omit_containers: []
+corepack_enable: false
+
+# CORS para permitir consumo pelo Next.js em desenvolvimento.
+# Em produção, restrinja a origem para o domínio da Vercel.
+web_extra_exposed_ports:
+  - name: drupal-https
+    container_port: 443
+    http_port: 80
+    https_port: 443

@@ -1,0 +1,9 @@
+name: 'Porto Auth — JWT Bridge'
+type: module
+description: 'Aceita JWTs emitidos pelo Next.js (após login Google/Microsoft) e auto-provisiona usuários.'
+core_version_requirement: ^10 || ^11
+package: 'Porto das Oliveiras'
+dependencies:
+  - drupal:user
+  - drupal:key
+  - jwt:jwt

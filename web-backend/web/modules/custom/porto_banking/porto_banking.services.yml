@@ -1,0 +1,17 @@
+services:
+  porto_banking.client:
+    class: Drupal\porto_banking\Service\BankingApiClient
+    arguments:
+      - '@http_client'
+      - '@key.repository'
+      - '@config.factory'
+      - '@logger.factory'
+      - '@datetime.time'
+      - '@state'
+
+  porto_banking.sync:
+    class: Drupal\porto_banking\Service\BoletoSyncService
+    arguments:
+      - '@porto_banking.client'
+      - '@entity_type.manager'
+      - '@logger.factory'

@@ -1,0 +1,22 @@
+langcode: pt-br
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_valor
+    - node.type.lote
+id: node.lote.field_valor
+field_name: field_valor
+entity_type: node
+bundle: lote
+label: 'Valor (R$)'
+description: 'Valor de tabela do lote, em reais.'
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: 0
+  max: null
+  prefix: 'R$ '
+  suffix: ''
+field_type: decimal

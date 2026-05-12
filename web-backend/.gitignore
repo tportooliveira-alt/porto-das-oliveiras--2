@@ -1,0 +1,21 @@
+# Dependências geradas via composer
+vendor/
+web/core/
+web/modules/contrib/
+web/themes/contrib/
+web/profiles/contrib/
+web/libraries/
+web/sites/*/settings.local.php
+web/sites/*/files/
+web/sites/*/private/
+
+# DDEV runtime
+.ddev/.dbimports/
+.ddev/db_snapshots/
+.ddev/import-db/
+.ddev/import.yaml
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
