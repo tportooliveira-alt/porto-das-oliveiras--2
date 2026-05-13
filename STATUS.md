@@ -2,159 +2,234 @@
 
 Atualizado em 2026-05-13.
 
-Resumo: a **fundação técnica está provada end-to-end**. O caminho público
-(Drupal → JSON:API → Next.js) funciona. O caminho autenticado
-(Next.js → JWT → porto_auth → Drupal) também funciona, validado com tokens
-mintados manualmente. O que falta para o produto rodar de verdade é design,
-credenciais externas e camadas de produto que dependem deles.
+Resumo: a **fundação técnica está provada end-to-end** e o **produto está
+quase pronto pro MVP**. O caminho público (Drupal → JSON:API → Next.js)
+funciona. O caminho autenticado (Next.js → JWT → porto_auth → Drupal) também
+funciona, validado com tokens mintados manualmente. Falta apenas
+**credenciais externas que você precisa criar** para o produto rodar
+ao vivo.
 
 ---
 
-## Feito ✅
+## ✅ Feito
 
 ### Fundação técnica
-- Monorepo organizado: `web-frontend/` (Next.js 14 App Router) +
-  `web-backend/` (Drupal 11 headless via DDEV).
-- DDEV configurado (PHP 8.3, MariaDB 10.11, nginx-fpm) com fix do binário
-  docker-compose e fallback do packagist CDN.
-- Drupal 11 instalado com `standard` profile + 9 módulos:
-  `jsonapi_extras`, `jsonapi_views`, `jsonapi_role_access`, `key`,
-  `restui`, `pathauto`, `entity_print`, `porto_auth`, `porto_banking`.
+- Monorepo: `web-frontend/` (Next.js 14 App Router) + `web-backend/` (Drupal 11 / DDEV)
+- Drupal 11 instalado com profile `standard` + 9 módulos contrib + **4 módulos custom**:
+  - **porto_auth** — JWT bridge NextAuth↔Drupal + hook_node_access (bloqueia anonymous em parcela/contrato)
+  - **porto_banking** — cliente OAuth client_credentials + sync de boletos + **PDF via entity_print**
+  - **porto_analytics** — eventos server-side com IP hashed diariamente
+  - **porto_notifications** — emails transacionais (vencendo / paga / contrato ativado)
+- DDEV + Mailpit + MariaDB + nginx-fpm
+- Smoke test 1-4 validado em máquina real (Win11 + WSL2 + Docker + DDEV)
 
 ### Modelo de conteúdo
-- 3 content types: `lote`, `contrato`, `parcela` — versionados em
-  [web-backend/config/sync/](web-backend/config/sync/).
-- ~25 campos versionados ou criados via
-  [bootstrap-content-model.php](web-backend/scripts/bootstrap-content-model.php).
-- 2 roles: `vendedor`, `financeiro` (além de anonymous/authenticated padrão).
+- 3 content types versionados em `web-backend/config/sync/`: `lote`, `contrato`, `parcela`
+- ~25 campos criados via `scripts/bootstrap-content-model.php`
+- 2 roles: `vendedor`, `financeiro`
+- Hook node_access bloqueia anonymous em bundles financeiros
+- Views REST `/api/minhas-parcelas` e `/api/meus-contratos` com Contextual Filter `[current-user:uid]` (script `bootstrap-views.php`)
 
-### Módulos custom
-- **porto_auth** — ponte JWT NextAuth ↔ Drupal:
-  - `JwtBridgeAuthenticator` valida HS256, decodifica claims, auto-provisiona
-    user pelo email.
-  - `porto_auth.module` com `hook_node_access` bloqueia anonymous em
-    `parcela`/`contrato`.
-- **porto_banking** — sincronização de boletos:
-  - `BankingApiClient` (OAuth client_credentials, token cacheado em State,
-    `rtrim` defensivo na baseUri, `is_array` no JSON).
-  - `BoletoSyncService` (orquestra import, idempotência via
-    `field_codigo_externo`, `hasField` defensivo antes de set/save).
+### Frontend (público)
+- Home com Hero + vídeo Veo 3.1 fotorrealista (`sobrevoo.mp4`)
+- `/lotes` com **filtros laterais** (status, quadra, preço, m², ordenação) + URL state
+- `/lotes/:uuid` com metadata SEO + JSON-LD + breadcrumb
+- `/assistente` (estrutura, Gemini key dummy)
+- 404, loading skeletons, error boundaries (público e cliente)
+- `sitemap.xml` dinâmico (lotes disponíveis priority 0.8, vendidos 0.5)
+- `robots.txt` dinâmico (bloqueia área autenticada + /api/*)
 
-### Frontend
-- Páginas implementadas:
-  - `/` — home com card do lote (verificado renderizando Q01-L01).
-  - `/lotes` — lista pública.
-  - `/lotes/:slug` — detalhe via UUID (verificado).
-  - `/assistente` — form de busca via Gemini (estrutura OK; Gemini só
-    responde com chave real).
-  - `/login` (rota existe; precisa OAuth).
-  - `/painel`, `/contratos`, `/parcelas`, `/documentos` (estrutura criada).
-- NextAuth.js v5 com providers Google e Microsoft Entra ID configurados.
-- `lib/drupal/client.ts` mintando JWT HS256 do cookie NextAuth e
-  enviando como `Authorization: Bearer` ao Drupal.
+### Frontend (área cliente)
+- `/painel` — saudação + ResumoFinanceiroCard + 3 contratos em destaque + atalhos
+- `/parcelas` — filtros pill (Todas/Em aberto/Vencidas/Pagas), ordenação inteligente, tabela desktop / cards mobile
+- `/contratos` — grid de cards com status badge
+- `/documentos` — EmptyState com CTA WhatsApp
+- Layout autenticado com BrandMark + nav + skip link
+- **PDF de boleto** baixável por parcela (`<BoletoLink>` dispara analytics)
 
-### Testes estáticos
-- 7 scripts em [tests/](tests/) — todos passando:
-  - `yaml-check`, `composer-check`, `php-check`, `xref-check`,
-    `php-sanity`, `jwt-cycle`, `cookie-decode`.
-- Scripts agora resolvem o root via `import.meta.url`
-  (rodam em qualquer worktree, não exigem caminho hardcoded).
+### Identidade visual editorial
+- Paleta: verde-oliva, terracota, areia, sépia, branco quente, marrom-sépia
+- Tipografia: Fraunces (serif display) + Inter (sans) + JetBrains Mono (mono)
+- Componentes: BrandMark, CtaPrimary, CtaSecondary, Hero, VideoFrame, PlayButton, LoteCard, StatusBadge, LoteFilters, ParcelaRow, ParcelaStatusBadge, ContratoCard, ResumoFinanceiroCard, EmptyState, BoletoLink, TrackView, WhatsappButton
+- Tokens em CSS vars + Tailwind config
+- `prefers-reduced-motion` global
 
-### Smoke test end-to-end
-Smoke test do [SMOKE-TEST.md](SMOKE-TEST.md), passos 1-4 validados em
-máquina real (Win11 + WSL2 + Docker Desktop + DDEV):
+### Infra & qualidade
+- **GitHub Actions CI**: typecheck + build + 8 scripts de teste estático
+- **12 testes unitários** da lógica financeira (`tests/parcelas-logic.mjs`) — pegaram um bug real de timezone
+- `next.config.mjs` com CSP + HSTS + X-Frame-Options + Permissions-Policy
+- `drupalFetch` com `DrupalError`, retry curto, timeout 8s
+- Middleware com **rate limiting** (60/min geral, 10/min Gemini, 20/min auth)
+- **Logger estruturado** (JSON em prod, pretty em dev) com correlation id (`x-request-id`)
+- `/api/health` + `/api/version` para monitoring
+- Skip link "Pular para o conteúdo" em ambos os layouts
+- Refresh do JWT do Drupal automático quando faltam <60s pra expirar
 
-| Passo | Status | Evidência |
-|---|---|---|
-| 1. Backend Drupal sobe | ✅ | DDEV up, 9 módulos habilitados |
-| 2. Key JWT compartilhada | ✅ | `porto_frontend_jwt` salva via drush |
-| 3. Lote Q01-L01 cadastrado | ✅ | Aparece em `/jsonapi/node/lote` |
-| 4. Home Next.js renderiza | ✅ | Card com badge "Disponível" em localhost:3000 |
+### Analytics LGPD-friendly (server-side, sem GA)
+- Tabela `porto_eventos` no Drupal com IP hashed diariamente
+- 8 tipos: `lote_visualizado`, `lote_listado`, `whatsapp_clicado`, `busca_executada`, `login_iniciado`, `login_concluido`, `parcela_baixada`, `contrato_visualizado`
+- API proxy Edge no Next com `sendBeacon`
+- Tracker disparado em: LoteCard, /lotes/:slug, WhatsappButton (com `origem`), BoletoLink
 
-JWT bridge validado adicionalmente sem precisar de OAuth:
-- Mintar token jose → bater no Drupal → auto-provisionou `cliente.teste@gmail.com` (uid=2)
-- Criado contrato (nid=2) + parcela (nid=3) atrelados a esse user
-- Filtro `filter[field_cliente.meta.drupal_internal__target_id]=2`:
-  retorna parcela para o dono, vazio para outros
-- Anonymous: bloqueado em `/jsonapi/node/parcela` (meta omitted) e
-  livre em `/jsonapi/node/lote` (público) ✅
+### Emails transacionais
+- **3 disparos** via Mailpit (dev) / SMTP (prod):
+  - Parcela vencendo (cron diário, 7 e 1 dia antes)
+  - Parcela paga (hook_node_update)
+  - Contrato ativado (insert/update para status=ativo)
+- Texto plain PT-BR, idempotente, log de metadata sem conteúdo
+
+### Vídeo
+- **2 versões versionadas** geradas no Google Vids/Flow (Veo 3.1):
+  - `sobrevoo.mp4` (v2 atual) — fotorrealista com aeroporto detalhado + porto seco + sem montanhas
+  - `sobrevoo-v1.mp4` (backup) — primeira tentativa
+- Ambas usaram **Ingredients to Video**: foto real do canteiro → futuro entregue
 
 ### Documentação
-- [README.md](README.md) com setup completo pós-clone + tabela de variáveis +
-  troubleshooting das 6 pegadinhas encontradas.
-- [tests/README.md](tests/README.md) com estrutura de execução (tests/ +
-  junction `web-backend`).
-- [SMOKE-TEST.md](SMOKE-TEST.md) — roteiro original.
+- [README.md](README.md) — setup pós-clone + troubleshooting de 6 pegadinhas reais
+- [STATUS.md](STATUS.md) — este arquivo
+- [ARCHITECTURE.md](ARCHITECTURE.md) — diagrama Next↔Drupal↔OAuth↔Gemini↔Banking + 4 camadas IDOR + fluxo JWT
+- [CONTRIBUTING.md](CONTRIBUTING.md) — branches, Conventional Commits PT, fluxo PR
+- [SECURITY.md](SECURITY.md) — canal de reporte + 72h SLA + escopo + práticas em vigor
+- [SMOKE-TEST.md](SMOKE-TEST.md) — roteiro original (passos 1-4 validados)
+- [tests/README.md](tests/README.md) — como rodar os testes estáticos
 
 ---
 
-## Falta fazer 🔧
+## 🔴 Falta — bloqueado em você (5min cada)
 
-### Bloqueado por credenciais externas (você precisa criar)
-- [ ] **OAuth Google**: Cloud Console → OAuth client com redirect
-      `http://localhost:3000/api/auth/callback/google` →
-      preencher `AUTH_GOOGLE_ID/SECRET` em `.env.local`.
-- [ ] **OAuth Microsoft**: Azure Portal → App registration "Personal +
-      any directory" com redirect
-      `http://localhost:3000/api/auth/callback/microsoft-entra-id` →
-      preencher `AUTH_MICROSOFT_ENTRA_ID_ID/SECRET`.
-- [ ] **Gemini API key**: aistudio.google.com/apikey → `GEMINI_API_KEY`.
-- [ ] Refazer `npm run dev` no `web-frontend` após popular `.env.local`.
+Cada item destrava um pedaço grande do produto.
 
-### Smoke test passos 5-6 (depende do bloco acima)
-- [ ] Login do cliente (`/login` → Google ou Microsoft → callback → `/painel`).
-- [ ] Validar que `ddev drush user:list` mostra o user recém-criado pelo OAuth.
-- [ ] Criar contrato + parcela pelo admin Drupal apontando para o user OAuth.
-- [ ] Acessar `/parcelas` no Next.js logado: parcela aparece.
-- [ ] Logar com outra conta: parcela **não** aparece.
+### 1. Docker Desktop funcionando
+Hoje quebra ao subir por causa do **Inference Manager** (feature de IA do Docker
+Desktop) que tenta criar socket em path Windows com espaço. Soluções:
 
-### Design (Claude Designer)
-- [ ] Identidade visual (paleta, tipografia, logo).
-- [ ] Mockups de todas as telas (ver prompt no histórico do chat).
-- [ ] Aplicar tokens de design no Tailwind config + revisar componentes
-      existentes (`LoteCard`, `StatusBadge`, `WhatsappButton`, layouts).
+**Opção A (recomendada):** Settings do Docker Desktop → Features in development
+→ **Desabilitar** "Use Docker AI / Inference Manager" → Apply & Restart.
 
-### Produto (próximo do smoke test passar)
-- [ ] **View "Minhas Parcelas"** no Drupal com Contextual Filter
-      `[current-user:uid]` — endpoint dedicado em vez de filtro manipulável
-      pelo cliente. Hoje qualquer authenticated pode (em tese) filtrar pelo
-      uid de outro usuário; o `hook_node_access` já barra anonymous, mas
-      a View cravada é a proteção limpa contra IDOR.
-- [ ] **Entity Print PDF** para boletos — gerar PDF estilizado de
-      cada parcela.
-- [ ] **Gemini avançado** — embeddings dos lotes para busca semântica
-      ("lote acima de 400m² com vista").
-- [ ] **Integração bancária real** — credenciais OAuth client_credentials
-      em produção, agendamento do `BoletoSyncService::sincronizarUltimoDia()`
-      via cron/advancedqueue.
+**Opção B:** Reinstalar o Docker Desktop preservando dados.
 
-### Infraestrutura / deploy
-- [ ] **Vercel** — deploy do `web-frontend` (variáveis de ambiente,
-      domínio, preview deploys).
-- [ ] **Hospedagem Drupal** — Pantheon, Platform.sh ou VPS própria
-      (DDEV é só local).
-- [ ] **CORS em produção** — restringir origem ao domínio Vercel no
-      `services.yml` do Drupal.
-- [ ] **CI** — rodar `tests/*.mjs` + `npm run typecheck` em PRs.
-- [ ] **Backups** automatizados do banco Drupal.
+**Opção C:** Mover seu usuário Windows pra um nome sem espaço (radical).
 
-### Qualidade / hardening
-- [ ] Testes E2E (Playwright/Cypress) cobrindo os fluxos validados manualmente.
-- [ ] Testes unitários PHPUnit para `BankingApiClient` e
-      `JwtBridgeAuthenticator`.
-- [ ] Logging estruturado em produção.
-- [ ] Monitoramento (Sentry no Next.js, watchdog/syslog no Drupal).
+### 2. Credenciais OAuth + IA
 
----
-
-## Estado dos serviços agora
-
-| Serviço | URL | Estado |
+| Variável | Onde criar | Pra quê |
 |---|---|---|
-| Drupal admin | http://porto-das-oliveiras.ddev.site/user/login | `admin / qEJLX68sFN` |
-| Drupal JSON:API | http://porto-das-oliveiras.ddev.site/jsonapi/node/lote | 200, retorna 1 lote |
-| Next.js dev | http://localhost:3000 | 200, renderiza home |
+| `AUTH_GOOGLE_ID` / `_SECRET` | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → OAuth client → redirect `http://localhost:3000/api/auth/callback/google` | Login Google |
+| `AUTH_MICROSOFT_ENTRA_ID_ID` / `_SECRET` | [Azure Portal](https://portal.azure.com) → App registrations → "Personal + any directory" → redirect `/api/auth/callback/microsoft-entra-id` | Login Microsoft/Hotmail |
+| `GEMINI_API_KEY` | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) | Assistente de IA |
+| `NEXT_PUBLIC_GOOGLE_MAPS_KEY` | [Cloud Console → Maps JavaScript API](https://console.cloud.google.com/apis/library/maps-backend.googleapis.com) → credencial restrita por domínio | Mapa interativo em /lotes |
+| Lat/lng do terreno | Google Maps → click direito → "O que há aqui?" | Centro do mapa |
 
-Para retomar do zero em outra máquina: seguir [README.md](README.md) ou
-[SMOKE-TEST.md](SMOKE-TEST.md). Toda a configuração necessária está
-versionada — nenhum estado "mágico" vive só na máquina atual.
+Quando criar, basta colar no `web-frontend/.env.local` (modelo em `.env.example`).
+Sem isso, smoke test passos 5-6 + `/assistente` real + mapa não rodam.
+
+### 3. Dependências do Drupal
+Quando Docker subir, rode (uma vez):
+
+```bash
+cd web-backend
+ddev start
+ddev composer require drupal/entity_print  # se ainda não instalado
+ddev drush en porto_analytics porto_notifications -y
+ddev drush scr scripts/bootstrap-views.php
+ddev drush cr
+ddev drush config:export -y
+git add web-backend/config/sync/ && git commit -m "chore: export config (views minhas-parcelas + meus-contratos)"
+```
+
+---
+
+## 🟡 Próximos blocos engenheiráveis (posso fazer sem desbloqueio externo)
+
+### Bloco 1 — Conteúdo
+- **Cadastrar lote pelo Next.js** — em vez de usar admin Drupal, vendedores cadastram pelo site (com a paleta editorial). Reusa JWT bridge.
+- **Lotes similares** no rodapé do `/lotes/:slug` (mesma quadra, mesma faixa de preço)
+- **Search Drupal Search API** — busca interna full-text (sem precisar de Gemini)
+- **Newsletter / interesse em lote** — "me avise quando voltar a vender"
+
+### Bloco 2 — Painel admin (vendedor / financeiro)
+- Telas Next.js consumindo `RegistradorEventos::contarPorTipo()` e `lotesMaisVisualizados()`
+- Audit log do financeiro: quem mudou `field_pago` quando
+- Bulk actions (marcar várias parcelas como pagas)
+
+### Bloco 3 — Integração mapa (depende só de Google Maps key + lat/lng)
+- Componente `<LotesMapa>` com pinos coloridos por status
+- Click no pino → `/lotes/:slug`
+- Toggle Grid/Mapa em `/lotes`
+- Filtros sincronizados com a sidebar
+
+### Bloco 4 — Hardening adicional (recomendo só após produção)
+- **Upstash Redis** pro rate limit multi-instance
+- **Sentry** no Next.js + watchdog/syslog no Drupal
+- **CSRF token explícito** (hoje só `SameSite=lax`)
+- **Lighthouse CI** falhando PRs que pioram score
+- **A11y audit completo** (focus traps, ARIA expandido)
+
+### Bloco 5 — Deploy
+- Vercel pro `web-frontend` (vars de ambiente + domínio + preview)
+- Pantheon / Platform.sh / VPS pro Drupal
+- CORS produção em `services.yml`
+- Backups automatizados do banco
+
+---
+
+## 📋 Variáveis de ambiente (`web-frontend/.env.local`)
+
+Lista completa do que o código consome. Copiar de `.env.example`.
+
+### Obrigatórias para rodar (sempre)
+- `AUTH_SECRET` — base64 32 bytes. Gerar com `openssl rand -base64 32`. Criptografa o cookie da sessão NextAuth.
+- `NEXTAUTH_URL` — origem do site. Dev: `http://localhost:3000`. Prod: `https://porto.com.br`.
+- `DRUPAL_BASE_URL` — `http://porto-das-oliveiras.ddev.site` em dev, URL pública do Drupal em prod.
+- `DRUPAL_JWT_SECRET` — 48+ chars. **Mesmo valor** salvo na Key `porto_frontend_jwt` no Drupal.
+
+### Obrigatórias para área autenticada
+- `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` — Google OAuth client
+- `AUTH_MICROSOFT_ENTRA_ID_ID` / `AUTH_MICROSOFT_ENTRA_ID_SECRET` — Microsoft App registration
+- `AUTH_MICROSOFT_ENTRA_ID_ISSUER` — `https://login.microsoftonline.com/common/v2.0` (default no .env.example)
+- `AUTH_MICROSOFT_ENTRA_ID_TENANT` — opcional, default `common` (aceita Hotmail/Outlook)
+
+### Obrigatórias para features específicas
+- `GEMINI_API_KEY` — `/assistente` real
+- `NEXT_PUBLIC_GOOGLE_MAPS_KEY` — mapa interativo em `/lotes`
+- `NEXT_PUBLIC_SITE_URL` — URL pública pro sitemap/robots/og:url. Dev: `http://localhost:3000`.
+
+### Opcionais (observabilidade)
+- `LOG_LEVEL` — `debug` | `info` | `warn` | `error`. Default: `debug` em dev, `info` em prod.
+- `NEXT_PUBLIC_GIT_SHA` — preenchido pelo CI/Vercel automaticamente em prod.
+
+---
+
+## Histórico de commits (14 hoje)
+
+| Hash | Mudança |
+|---|---|
+| `d1ed544` | feat(notifications): emails transacionais via Mailpit/SMTP |
+| `0b39434` | feat(boletos): PDF de parcela via entity_print + tracking |
+| `e8050cc` | feat(analytics): tracking server-side LGPD-friendly |
+| `4a57f84` | feat(infra): rate limit + logger + a11y + docs operacionais |
+| `814c529` | feat(infra): SEO + CI + testes + ARCHITECTURE |
+| `0f3c241` | feat(cliente): área autenticada completa |
+| `c2aa063` | feat(lotes): filtros laterais com URL state |
+| `b1a2385` | feat(hero): v2 do vídeo gerado — fotorrealista |
+| `21b79e5` | feat(hero): integra vídeo gerado no Veo 3.1 |
+| `da95ba3` | design: identidade visual + Hero versão A |
+| `9e6ee98` | docs: STATUS.md |
+| `18b1b4b` | docs: setup pós-clone + troubleshooting |
+| `b5843be` | fix(lotes): obter por UUID em vez de filter[path.alias] |
+| `6a9b1cb` | feat: smoke test ponta-a-ponta passou + fixes |
+
+---
+
+## Próximos passos imediatos quando retomar
+
+1. **Destravar Docker** (Settings → desabilitar Inference Manager)
+2. `cd web-backend && ddev start && ddev composer install`
+3. `ddev drush en porto_analytics porto_notifications -y && ddev drush cr`
+4. Confirmar `http://porto-das-oliveiras.ddev.site` respondendo
+5. Confirmar `http://localhost:3000` respondendo (dev server)
+6. Pegar credenciais externas (Google OAuth + Maps + Gemini) — uma de cada vez
+7. Conforme cada credencial cair, atacamos:
+   - OAuth → smoke test 5-6 ao vivo
+   - Gemini → `/assistente` funcional
+   - Maps + GPS → bloco 3 (mapa interativo)
