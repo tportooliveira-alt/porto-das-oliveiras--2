@@ -1,0 +1,10 @@
+porto_analytics.track:
+  path: '/api/track'
+  defaults:
+    _controller: '\Drupal\porto_analytics\Controller\TrackController::registrar'
+    _format: json
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'  # anonymous OK — anti-abuse via rate limit no Next.js
+  options:
+    no_cache: TRUE

@@ -48,7 +48,7 @@ ddev drush site:install standard --site-name="Porto das Oliveiras" -y
 # ANOTAR o admin password mostrado aqui — usado para acessar /user/login
 
 ddev drush en jsonapi_extras jsonapi_views jsonapi_role_access key restui \
-  pathauto entity_print porto_auth porto_banking -y
+  pathauto entity_print porto_auth porto_banking porto_analytics -y
 ddev drush config:import -y --partial --source=../config/sync
 ddev drush scr scripts/bootstrap-content-model.php
 ddev drush config:export -y

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { obterLotePorSlug } from '@/lib/drupal/lotes';
 import StatusBadge from '@/components/lotes/StatusBadge';
 import WhatsappButton from '@/components/shared/WhatsappButton';
+import TrackView from '@/components/shared/TrackView';
 import { formatarBRL } from '@/lib/utils';
 
 export const revalidate = 60;
@@ -74,6 +75,7 @@ export default async function LoteDetalhePage({ params }: { params: { slug: stri
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <TrackView tipo="lote_visualizado" loteId={lote.id} />
 
       <article className="mx-auto max-w-4xl px-6 py-16 lg:py-24">
         {/* Breadcrumb */}
@@ -123,6 +125,8 @@ export default async function LoteDetalhePage({ params }: { params: { slug: stri
               numero="5577999999999"
               mensagem={`Olá! Tenho interesse no lote ${lote.titulo} do Porto das Oliveiras.`}
               rotulo="Quero esse lote"
+              loteId={lote.id}
+              origem="detalhe"
             />
           </div>
         )}

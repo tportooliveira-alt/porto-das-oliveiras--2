@@ -1,0 +1,7 @@
+services:
+  porto_analytics.registrador:
+    class: Drupal\porto_analytics\Service\RegistradorEventos
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@logger.factory'

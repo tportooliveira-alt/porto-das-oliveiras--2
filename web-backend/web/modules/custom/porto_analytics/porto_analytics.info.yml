@@ -1,0 +1,8 @@
+name: 'Porto Analytics'
+type: module
+description: 'Coleta server-side de eventos do site (LGPD-friendly: sem GA, sem cookies de tracking, IP hashed).'
+core_version_requirement: ^11
+package: 'Porto das Oliveiras'
+dependencies:
+  - drupal:system
+  - drupal:user

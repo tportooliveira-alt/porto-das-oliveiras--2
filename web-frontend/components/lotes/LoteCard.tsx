@@ -36,6 +36,8 @@ export default function LoteCard({ lote }: { lote: Lote }) {
             numero="5577999999999"
             mensagem={`Olá! Tenho interesse no lote ${lote.titulo} do Porto das Oliveiras.`}
             rotulo="Tenho interesse"
+            loteId={lote.id}
+            origem="card"
           />
         )}
       </div>

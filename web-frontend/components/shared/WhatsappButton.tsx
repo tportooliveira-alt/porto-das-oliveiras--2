@@ -1,9 +1,14 @@
+'use client';
+
 import { montarLinkWhatsapp } from '@/lib/whatsapp/format';
+import { track } from '@/lib/analytics';
 
 type Props = {
   numero: string;
   mensagem: string;
   rotulo?: string;
+  loteId?: string;
+  origem?: 'card' | 'detalhe' | 'hero' | 'cta';
 };
 
 const WhatsIcon = () => (
@@ -15,13 +20,29 @@ const WhatsIcon = () => (
   </svg>
 );
 
-export default function WhatsappButton({ numero, mensagem, rotulo = 'Falar pelo WhatsApp' }: Props) {
+export default function WhatsappButton({
+  numero,
+  mensagem,
+  rotulo = 'Falar pelo WhatsApp',
+  loteId,
+  origem = 'cta',
+}: Props) {
   const href = montarLinkWhatsapp(numero, mensagem);
+
+  const handleClick = () => {
+    track({
+      tipo: 'whatsapp_clicado',
+      lote_id: loteId,
+      meta: { origem },
+    });
+  };
+
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={handleClick}
       className="inline-flex items-center justify-center gap-2 rounded-full bg-terracota px-5 py-3 text-[13px] font-medium uppercase tracking-[0.08em] text-branco shadow-[0_8px_24px_-8px_rgba(200,112,79,0.45)] transition-all duration-300 ease-out-soft hover:-translate-y-0.5 hover:bg-terracota-escuro hover:shadow-[0_14px_32px_-10px_rgba(200,112,79,0.55)]"
     >
       <WhatsIcon />

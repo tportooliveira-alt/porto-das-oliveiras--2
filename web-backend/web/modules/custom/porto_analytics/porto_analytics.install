@@ -1,0 +1,85 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Install / schema do porto_analytics.
+ */
+
+/**
+ * Implements hook_schema().
+ *
+ * Tabela própria — não usamos watchdog porque queremos consultas por
+ * tipo de evento, por lote e por janela temporal sem competir com
+ * logs operacionais. Hash do IP (não o IP cru) para LGPD.
+ */
+function porto_analytics_schema(): array {
+  $schema['porto_eventos'] = [
+    'description' => 'Eventos de uso do site coletados server-side.',
+    'fields' => [
+      'id' => [
+        'description' => 'PK',
+        'type'        => 'serial',
+        'unsigned'    => TRUE,
+        'not null'    => TRUE,
+      ],
+      'tipo' => [
+        'description' => 'Tipo do evento (lote_visualizado, whatsapp_clicado, etc.)',
+        'type'        => 'varchar',
+        'length'      => 64,
+        'not null'    => TRUE,
+      ],
+      'lote_id' => [
+        'description' => 'UUID do lote relacionado, se aplicável.',
+        'type'        => 'varchar',
+        'length'      => 64,
+        'not null'    => FALSE,
+      ],
+      'uid' => [
+        'description' => 'UID do usuário Drupal (0 para anônimo).',
+        'type'        => 'int',
+        'unsigned'    => TRUE,
+        'not null'    => TRUE,
+        'default'     => 0,
+      ],
+      'ip_hash' => [
+        'description' => 'SHA-256 do IP + salt diário. Permite contar visitantes únicos sem armazenar IP.',
+        'type'        => 'varchar',
+        'length'      => 64,
+        'not null'    => FALSE,
+      ],
+      'user_agent' => [
+        'description' => 'Substring do User-Agent (trunc 200 chars).',
+        'type'        => 'varchar',
+        'length'      => 200,
+        'not null'    => FALSE,
+      ],
+      'referrer' => [
+        'description' => 'Referrer da página.',
+        'type'        => 'varchar',
+        'length'      => 500,
+        'not null'    => FALSE,
+      ],
+      'meta_json' => [
+        'description' => 'Campos arbitrários adicionais em JSON.',
+        'type'        => 'text',
+        'size'        => 'normal',
+        'not null'    => FALSE,
+      ],
+      'criado_em' => [
+        'description' => 'Timestamp Unix do evento.',
+        'type'        => 'int',
+        'unsigned'    => TRUE,
+        'not null'    => TRUE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'tipo_criado'    => ['tipo', 'criado_em'],
+      'lote_criado'    => ['lote_id', 'criado_em'],
+      'uid_criado'     => ['uid', 'criado_em'],
+    ],
+  ];
+  return $schema;
+}
