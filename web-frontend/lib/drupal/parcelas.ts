@@ -7,7 +7,10 @@ type ParcelaAttrs = {
   field_vencimento: string;
   field_pago: boolean;
   field_data_pagamento?: string | null;
+  drupal_internal__nid?: number;
 };
+
+const DRUPAL_BASE = process.env.DRUPAL_BASE_URL ?? 'http://porto-das-oliveiras.ddev.site';
 
 /**
  * Busca as parcelas do usuário logado.
@@ -33,6 +36,11 @@ export async function listarMinhasParcelas(): Promise<Parcela[]> {
 }
 
 function mapearParcela(id: string, attrs: ParcelaAttrs): Parcela {
+  // URL do boleto PDF — só faz sentido se já tem nid e ainda não pagou.
+  const boletoUrl = attrs.drupal_internal__nid && !attrs.field_pago
+    ? `${DRUPAL_BASE}/parcelas/${attrs.drupal_internal__nid}/boleto.pdf`
+    : undefined;
+
   return {
     id,
     numero: Number(attrs.field_numero),
@@ -40,6 +48,7 @@ function mapearParcela(id: string, attrs: ParcelaAttrs): Parcela {
     vencimento: attrs.field_vencimento,
     pago: !!attrs.field_pago,
     dataPagamento: attrs.field_data_pagamento ?? undefined,
+    boletoUrl,
   };
 }
 

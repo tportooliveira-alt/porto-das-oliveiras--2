@@ -1,0 +1,86 @@
+{#
+/**
+ * Template do PDF de boleto.
+ *
+ * Renderizado pelo entity_print quando o usuário acessa
+ * /parcelas/{nid}/boleto.pdf. View mode 'pdf' precisa estar
+ * habilitado para o bundle parcela (config:export tras o yaml).
+ *
+ * CSS inline porque Dompdf não suporta @import nem CSS externo
+ * complexo. Mantemos a paleta editorial do site, mas com layout
+ * sóbrio adequado a documento financeiro.
+ */
+#}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Boleto · Parcela {{ node.field_numero.value }}</title>
+  <style>
+    @page { margin: 24mm 18mm; }
+    body { font-family: 'Helvetica', sans-serif; color: #3A2A1F; font-size: 11pt; line-height: 1.45; }
+    h1 { font-size: 22pt; margin: 0 0 4mm; color: #2C3A24; font-weight: 600; }
+    h2 { font-size: 12pt; margin: 8mm 0 2mm; color: #4F6E3C; text-transform: uppercase; letter-spacing: 2pt; }
+    .header { border-bottom: 2pt solid #4F6E3C; padding-bottom: 6mm; margin-bottom: 8mm; }
+    .header .kicker { font-size: 8pt; letter-spacing: 3pt; color: #6E5B4E; text-transform: uppercase; }
+    .valor { font-size: 28pt; color: #C8704F; font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; margin-top: 4mm; }
+    td { padding: 2.5mm 0; border-bottom: 0.5pt solid #E5DCC6; vertical-align: top; }
+    td.label { color: #6E5B4E; font-size: 9pt; text-transform: uppercase; letter-spacing: 1.5pt; width: 38%; }
+    td.value { font-weight: 600; }
+    .barcode { margin-top: 12mm; padding: 6mm; background: #F4EDDC; text-align: center; font-family: 'Courier New', monospace; font-size: 12pt; letter-spacing: 2pt; }
+    .footer { margin-top: 14mm; padding-top: 4mm; border-top: 0.5pt solid #E5DCC6; font-size: 8pt; color: #6E5B4E; }
+    .footer p { margin: 1mm 0; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <p class="kicker">Loteamento Porto das Oliveiras · Vitória da Conquista — BA</p>
+    <h1>Boleto · Parcela {{ node.field_numero.value }}</h1>
+  </div>
+
+  <p class="valor">
+    R$ {{ node.field_valor.value|number_format(2, ',', '.') }}
+  </p>
+
+  <h2>Dados da parcela</h2>
+  <table>
+    <tr>
+      <td class="label">Vencimento</td>
+      <td class="value">{{ node.field_vencimento.value|date('d/m/Y') }}</td>
+    </tr>
+    <tr>
+      <td class="label">Número da parcela</td>
+      <td class="value">{{ node.field_numero.value }}</td>
+    </tr>
+    <tr>
+      <td class="label">Cliente</td>
+      <td class="value">{{ node.field_cliente.entity.label }}</td>
+    </tr>
+    {% if node.field_contrato.entity %}
+    <tr>
+      <td class="label">Contrato</td>
+      <td class="value">{{ node.field_contrato.entity.label }}</td>
+    </tr>
+    {% endif %}
+    {% if node.field_codigo_externo.value %}
+    <tr>
+      <td class="label">Código bancário</td>
+      <td class="value">{{ node.field_codigo_externo.value }}</td>
+    </tr>
+    {% endif %}
+  </table>
+
+  {% if node.field_codigo_externo.value %}
+  <div class="barcode">
+    {{ node.field_codigo_externo.value }}
+  </div>
+  {% endif %}
+
+  <div class="footer">
+    <p><strong>Loteamento Porto das Oliveiras</strong> · BR-262, km 14 · Vitória da Conquista — BA</p>
+    <p>Em caso de dúvida, fale com o financeiro pelo WhatsApp (77) 9999-9999.</p>
+    <p>Documento gerado em {{ "now"|date('d/m/Y H:i') }}.</p>
+  </div>
+</body>
+</html>

@@ -5,3 +5,17 @@ porto_banking.sync_boletos:
     _title: 'Sincronizar boletos com o banco'
   requirements:
     _permission: 'sync banking api'
+
+porto_banking.boleto_pdf:
+  path: '/parcelas/{node}/boleto.pdf'
+  defaults:
+    _controller: '\Drupal\porto_banking\Controller\BoletoPdfController::baixar'
+  options:
+    parameters:
+      node:
+        type: entity:node
+  requirements:
+    # Acesso de view do node — porto_auth.module bloqueia anonymous,
+    # e o JSON:API/View já cravam current-user:uid no field_cliente.
+    _entity_access: 'node.view'
+    node: \d+

@@ -1,0 +1,38 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Hooks do porto_banking.
+ */
+
+/**
+ * Implements hook_theme().
+ *
+ * Registra o template do PDF de boleto. O entity_print procura por
+ * sugestões node--parcela--pdf.html.twig automaticamente quando
+ * usamos o view mode 'pdf'.
+ */
+function porto_banking_theme(): array {
+  return [
+    'node__parcela__pdf' => [
+      'base hook' => 'node',
+      'template'  => 'node--parcela--pdf',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_theme_suggestions_node_alter().
+ *
+ * Quando o entity_print renderiza um node parcela no view mode pdf,
+ * adicionamos a sugestão de template node--parcela--pdf.
+ */
+function porto_banking_theme_suggestions_node_alter(array &$suggestions, array $variables): void {
+  $node = $variables['elements']['#node'] ?? NULL;
+  $view_mode = $variables['elements']['#view_mode'] ?? '';
+  if ($node && $node->bundle() === 'parcela' && $view_mode === 'pdf') {
+    $suggestions[] = 'node__parcela__pdf';
+  }
+}

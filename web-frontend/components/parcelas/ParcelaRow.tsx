@@ -2,6 +2,7 @@ import { formatarBRL, formatarData } from '@/lib/utils';
 import { statusDaParcela } from '@/lib/drupal/parcelas';
 import type { Parcela } from '@/lib/drupal/types';
 import ParcelaStatusBadge from './ParcelaStatusBadge';
+import BoletoLink from './BoletoLink';
 
 type Props = {
   parcela: Parcela;
@@ -32,14 +33,13 @@ export default function ParcelaRow({ parcela }: Props) {
         </td>
         <td className="px-4 py-4 text-right">
           {status !== 'paga' && parcela.boletoUrl && (
-            <a
+            <BoletoLink
               href={parcela.boletoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+              parcelaId={parcela.id}
               className="inline-flex items-center gap-1 rounded-full border border-sepia/20 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.1em] text-sepia transition-colors hover:bg-sepia hover:text-branco"
             >
               Boleto
-            </a>
+            </BoletoLink>
           )}
           {status === 'paga' && parcela.dataPagamento && (
             <span className="text-[12px] text-sepia-soft">
@@ -65,14 +65,13 @@ export default function ParcelaRow({ parcela }: Props) {
             Vence {formatarData(parcela.vencimento)}
           </span>
           {status !== 'paga' && parcela.boletoUrl && (
-            <a
+            <BoletoLink
               href={parcela.boletoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+              parcelaId={parcela.id}
               className="inline-flex items-center gap-1 rounded-full border border-sepia/20 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.1em] text-sepia transition-colors hover:bg-sepia hover:text-branco"
             >
               Baixar boleto
-            </a>
+            </BoletoLink>
           )}
           {status === 'paga' && parcela.dataPagamento && (
             <span className="text-sepia-soft">

@@ -6,3 +6,5 @@ package: 'Porto das Oliveiras'
 dependencies:
   - drupal:key
   - drupal:advancedqueue
+  - drupal:node
+  - entity_print:entity_print
