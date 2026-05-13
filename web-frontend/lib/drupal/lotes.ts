@@ -51,17 +51,27 @@ export async function listarLotes({ limit = 24, status }: ListarOpcoes = {}): Pr
 }
 
 export async function obterLotePorSlug(slug: string): Promise<Lote | null> {
-  // O Drupal JSON:API filtra o alias do path como subcampo: `path.alias`.
-  // O alias salvo no Drupal sempre começa com '/'.
-  const params = new URLSearchParams();
-  params.set('filter[path.alias]', `/${slug}`);
-  params.set('page[limit]', '1');
+  // UUIDs do Drupal são o slug canônico. O JSON:API expõe `/jsonapi/node/lote/<uuid>`
+  // diretamente, evitando o filtro `path.alias` (que exige expor o pseudo-campo `path`).
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidPattern.test(slug)) {
+    return null;
+  }
 
-  const resposta = await drupalFetch<JsonApiCollection<LoteAttrs>>(
-    `/jsonapi/node/lote?${params.toString()}`,
-    { revalidate: 60 }
+  const params = new URLSearchParams();
+  params.set(
+    'fields[node--lote]',
+    'title,field_quadra,field_numero,field_metragem,field_valor,field_status,field_descricao'
   );
 
-  const primeiro = resposta.data[0];
-  return primeiro ? mapearLote(primeiro.id, primeiro.attributes) : null;
+  try {
+    const resposta = await drupalFetch<{ data: { id: string; attributes: LoteAttrs } }>(
+      `/jsonapi/node/lote/${slug}?${params.toString()}`,
+      { revalidate: 60 }
+    );
+    return mapearLote(resposta.data.id, resposta.data.attributes);
+  }
+  catch {
+    return null;
+  }
 }
