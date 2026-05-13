@@ -1,6 +1,14 @@
 import { auth, signOut } from '@/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import BrandMark from '@/components/shared/BrandMark';
+
+const NAV_ITEMS = [
+  { href: '/painel',     label: 'Resumo' },
+  { href: '/contratos',  label: 'Contratos' },
+  { href: '/parcelas',   label: 'Parcelas' },
+  { href: '/documentos', label: 'Documentos' },
+];
 
 export default async function ClienteLayout({ children }: { children: React.ReactNode }) {
   const sessao = await auth();
@@ -11,25 +19,64 @@ export default async function ClienteLayout({ children }: { children: React.Reac
     await signOut({ redirectTo: '/' });
   }
 
+  const nomeCurto = sessao.user.name?.split(' ')[0] ?? sessao.user.email?.split('@')[0] ?? 'Cliente';
+
   return (
-    <div className="flex flex-col min-h-dvh">
-      <header className="border-b-thick border-border bg-canvas">
-        <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between flex-wrap gap-3">
-          <Link href="/painel" className="text-field-lg uppercase">Painel do cliente</Link>
-          <nav className="flex gap-4 text-field-sm uppercase">
-            <Link href="/painel">Resumo</Link>
-            <Link href="/contratos">Contratos</Link>
-            <Link href="/parcelas">Parcelas</Link>
-            <Link href="/documentos">Documentos</Link>
-          </nav>
-          <form action={logout}>
-            <button className="border-thick border-border px-4 py-2 text-field-sm uppercase">
-              Sair
-            </button>
-          </form>
+    <div className="flex min-h-dvh flex-col bg-branco">
+      <header className="border-b border-linha bg-branco/90 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-5">
+          <div className="flex items-center gap-8">
+            <BrandMark tone="dark" size="sm" />
+            <nav className="hidden gap-7 text-[13px] uppercase tracking-[0.08em] text-sepia-soft lg:flex">
+              {NAV_ITEMS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="transition-colors hover:text-sepia"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <span className="hidden text-[12px] text-sepia-soft sm:inline">
+              Olá, <span className="text-sepia">{nomeCurto}</span>
+            </span>
+            <form action={logout}>
+              <button
+                type="submit"
+                className="inline-flex items-center gap-1 rounded-full border border-sepia/20 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.1em] text-sepia transition-colors hover:bg-sepia hover:text-branco"
+              >
+                Sair
+              </button>
+            </form>
+          </div>
         </div>
+
+        {/* Nav mobile (debaixo do header) */}
+        <nav className="mx-auto flex max-w-7xl gap-6 overflow-x-auto px-6 pb-3 text-[12px] uppercase tracking-[0.08em] text-sepia-soft lg:hidden">
+          {NAV_ITEMS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="shrink-0 transition-colors hover:text-sepia"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
       </header>
-      <main className="flex-1 mx-auto max-w-6xl w-full px-4 py-8">{children}</main>
+
+      <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-12 lg:py-16">{children}</main>
+
+      <footer className="border-t border-linha bg-areia-clara/40">
+        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-8 sm:flex-row sm:items-center sm:justify-between">
+          <p className="kicker">Área do cliente · Porto das Oliveiras</p>
+          <p className="kicker text-right">Vitória da Conquista — BA</p>
+        </div>
+      </footer>
     </div>
   );
 }
