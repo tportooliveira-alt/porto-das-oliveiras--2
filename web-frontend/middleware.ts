@@ -3,25 +3,25 @@ import { NextResponse } from 'next/server';
 import { LIMITES, aplicarLimite, identificarCliente, headersDeLimite } from '@/lib/rateLimit';
 
 const ROTAS_PROTEGIDAS = ['/painel', '/parcelas', '/contratos', '/documentos'];
+const ROTAS_ADMIN      = ['/admin'];
 
-/** UUID v4 leve para correlation id — sem dependência externa. */
 function gerarRequestId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
   return `req_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
 }
 
 export default auth((req) => {
-  const path = req.nextUrl.pathname;
+  const path      = req.nextUrl.pathname;
   const requestId = req.headers.get('x-request-id') ?? gerarRequestId();
 
-  // 1) Rate limit nas APIs públicas
+  // ── Rate limit em /api/* ──────────────────────────────────────────────
   if (path.startsWith('/api/')) {
     const limite =
       path.startsWith('/api/gemini') ? LIMITES.gemini
       : path.startsWith('/api/auth') ? LIMITES.auth
       : LIMITES.apiGeral;
 
-    const cliente = identificarCliente(req.headers);
+    const cliente   = identificarCliente(req.headers);
     const resultado = aplicarLimite(cliente, limite);
 
     if (!resultado.ok) {
@@ -29,8 +29,8 @@ export default auth((req) => {
         status: 429,
         headers: {
           ...headersDeLimite(resultado, limite),
-          'x-request-id': requestId,
-          'Content-Type': 'text/plain; charset=utf-8',
+          'x-request-id':  requestId,
+          'Content-Type':  'text/plain; charset=utf-8',
         },
       });
     }
@@ -45,9 +45,21 @@ export default auth((req) => {
     return resposta;
   }
 
-  // 2) Auth guard nas rotas autenticadas
-  const ehAreaCliente = ROTAS_PROTEGIDAS.some((r) => path === r || path.startsWith(`${r}/`));
+  // ── Auth guard — área cliente ─────────────────────────────────────────
+  const ehAreaCliente = ROTAS_PROTEGIDAS.some(
+    (r) => path === r || path.startsWith(`${r}/`),
+  );
   if (ehAreaCliente && !req.auth) {
+    const url = new URL('/login', req.url);
+    url.searchParams.set('callbackUrl', path);
+    return NextResponse.redirect(url);
+  }
+
+  // ── Auth guard — área admin ───────────────────────────────────────────
+  // Apenas verifica autenticação; a checagem de role fica no layout (Server
+  // Component), onde conseguimos ler a sessão completa com drupalRoles.
+  const ehAdmin = ROTAS_ADMIN.some((r) => path === r || path.startsWith(`${r}/`));
+  if (ehAdmin && !req.auth) {
     const url = new URL('/login', req.url);
     url.searchParams.set('callbackUrl', path);
     return NextResponse.redirect(url);
@@ -68,8 +80,6 @@ function addRequestId(headers: Headers, id: string): Headers {
 
 export const config = {
   matcher: [
-    // Aplica em tudo, exceto assets estáticos e os handlers do NextAuth
-    // (esses precisam fluxo OAuth livre de rate-limit no middleware).
     '/((?!_next/static|_next/image|favicon.ico|video/|api/auth/callback).*)',
   ],
 };
