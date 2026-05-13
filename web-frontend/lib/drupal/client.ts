@@ -19,10 +19,36 @@ const COOKIE_NAME = process.env.NODE_ENV === 'production'
   ? '__Secure-authjs.session-token'
   : 'authjs.session-token';
 
+const DEFAULT_TIMEOUT_MS = 8000;
+const MAX_RETRIES = 1; // 1 retry curto pra 5xx; 4xx nunca repete.
+
 type Opcoes = RequestInit & {
   autenticado?: boolean;
   revalidate?: number | false;
+  timeoutMs?: number;
 };
+
+/**
+ * Erro estruturado do Drupal — permite que páginas distingam 401/403/404/5xx
+ * e tratem cada um adequadamente (ex.: 404 → notFound(), 401 → redirect login).
+ */
+export class DrupalError extends Error {
+  readonly status: number;
+  readonly path: string;
+  readonly body: string;
+
+  constructor(path: string, status: number, body: string) {
+    super(`Drupal ${status} em ${path}`);
+    this.name = 'DrupalError';
+    this.status = status;
+    this.path = path;
+    this.body = body;
+  }
+
+  get isAuthError() { return this.status === 401 || this.status === 403; }
+  get isNotFound() { return this.status === 404; }
+  get isServerError() { return this.status >= 500; }
+}
 
 async function obterDrupalJwt(): Promise<string | null> {
   const secret = process.env.AUTH_SECRET;
@@ -40,8 +66,43 @@ async function obterDrupalJwt(): Promise<string | null> {
   }
 }
 
+async function tentativa<T>(
+  caminho: string,
+  opcoes: Opcoes,
+  cabecalhos: Record<string, string>,
+): Promise<T> {
+  const { revalidate, timeoutMs = DEFAULT_TIMEOUT_MS, ...resto } = opcoes;
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+
+  try {
+    const resposta = await fetch(`${BASE}${caminho}`, {
+      ...resto,
+      headers: cabecalhos,
+      signal: ctrl.signal,
+      next:
+        revalidate === false
+          ? { revalidate: false }
+          : revalidate !== undefined
+            ? { revalidate }
+            : undefined,
+    });
+
+    if (!resposta.ok) {
+      const body = await resposta.text();
+      throw new DrupalError(caminho, resposta.status, body);
+    }
+
+    return resposta.json() as Promise<T>;
+  }
+  finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function drupalFetch<T>(caminho: string, opcoes: Opcoes = {}): Promise<T> {
-  const { autenticado, revalidate, headers, ...resto } = opcoes;
+  const { autenticado, headers, ...resto } = opcoes;
 
   const cabecalhos: Record<string, string> = {
     Accept: 'application/vnd.api+json',
@@ -54,20 +115,24 @@ export async function drupalFetch<T>(caminho: string, opcoes: Opcoes = {}): Prom
     if (jwt) cabecalhos.Authorization = `Bearer ${jwt}`;
   }
 
-  const resposta = await fetch(`${BASE}${caminho}`, {
-    ...resto,
-    headers: cabecalhos,
-    next:
-      revalidate === false
-        ? { revalidate: false }
-        : revalidate !== undefined
-          ? { revalidate }
-          : undefined,
-  });
-
-  if (!resposta.ok) {
-    throw new Error(`Drupal ${resposta.status}: ${await resposta.text()}`);
+  // Retry curto pra erros 5xx e timeouts. 4xx nunca repete (vai falhar igual).
+  let ultimoErro: unknown;
+  for (let i = 0; i <= MAX_RETRIES; i++) {
+    try {
+      return await tentativa<T>(caminho, resto, cabecalhos);
+    }
+    catch (e) {
+      ultimoErro = e;
+      if (e instanceof DrupalError && e.status < 500) {
+        // Erro definitivo do cliente — não adianta repetir.
+        throw e;
+      }
+      if (i < MAX_RETRIES) {
+        // Backoff curto: 250ms. Não queremos atrasar muito o SSR.
+        await new Promise((r) => setTimeout(r, 250));
+        continue;
+      }
+    }
   }
-
-  return resposta.json() as Promise<T>;
+  throw ultimoErro;
 }

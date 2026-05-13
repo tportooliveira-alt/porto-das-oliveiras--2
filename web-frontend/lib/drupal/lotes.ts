@@ -125,8 +125,11 @@ export async function obterLotePorSlug(slug: string): Promise<Lote | null> {
     );
     return mapearLote(resposta.data.id, resposta.data.attributes);
   }
-  catch {
-    return null;
+  catch (e) {
+    // 404 e 4xx → trata como "não existe". 5xx propaga pra cair no error.tsx.
+    if (e instanceof Error && 'isNotFound' in e && (e as { isNotFound: boolean }).isNotFound) return null;
+    if (e instanceof Error && 'status' in e && typeof (e as { status: number }).status === 'number' && (e as { status: number }).status < 500) return null;
+    throw e;
   }
 }
 

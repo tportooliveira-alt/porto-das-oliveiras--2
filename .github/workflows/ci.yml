@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  frontend:
+    name: Frontend (Next.js)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: web-frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web-frontend/package-lock.json
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Build
+        env:
+          # Build precisa rodar sem Drupal — dependências server-side fazem
+          # try/catch em tudo, então valores dummy bastam para o build passar.
+          AUTH_SECRET: dummy_for_ci_build_at_least_32_chars_xxx
+          NEXTAUTH_URL: http://localhost:3000
+          DRUPAL_BASE_URL: http://localhost:9999
+          DRUPAL_JWT_SECRET: dummy_drupal_jwt_secret_for_ci_build_xx
+          GEMINI_API_KEY: dummy
+          AUTH_GOOGLE_ID: dummy
+          AUTH_GOOGLE_SECRET: dummy
+          AUTH_MICROSOFT_ENTRA_ID_ID: dummy
+          AUTH_MICROSOFT_ENTRA_ID_SECRET: dummy
+        run: npm run build
+
+  static-tests:
+    name: Static tests (yaml/composer/php/xref/jwt/cookie)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install yaml + jose
+        working-directory: tests
+        run: |
+          cat > package.json <<'EOF'
+          { "name": "porto-tests", "private": true, "type": "module",
+            "dependencies": { "yaml": "^2.5.0", "jose": "^5.9.6" } }
+          EOF
+          npm install --no-audit --no-fund
+
+      - name: yaml-check
+        run: node tests/yaml-check.mjs
+
+      - name: composer-check
+        run: node tests/composer-check.mjs
+
+      - name: php-check
+        run: node tests/php-check.mjs
+
+      - name: xref-check
+        run: node tests/xref-check.mjs
+
+      - name: php-sanity
+        run: node tests/php-sanity.mjs
+
+      - name: jwt-cycle
+        run: node tests/jwt-cycle.mjs
+
+      - name: cookie-decode
+        run: node tests/cookie-decode.mjs
+
+      - name: parcelas-logic
+        if: hashFiles('tests/parcelas-logic.mjs') != ''
+        run: node tests/parcelas-logic.mjs

@@ -49,14 +49,15 @@ export type StatusParcela = 'paga' | 'aberta' | 'vencida';
 
 export function statusDaParcela(p: Parcela, hoje: Date = new Date()): StatusParcela {
   if (p.pago) return 'paga';
-  const venc = new Date(p.vencimento);
-  return venc < startOfDay(hoje) ? 'vencida' : 'aberta';
+  // Compara como YYYY-MM-DD pra ficar independente de timezone do servidor.
+  // Convenção: parcela que vence HOJE ainda é "aberta" (paga até 23h59).
+  const vencISO = toIsoDate(p.vencimento);
+  const hojeISO = toIsoDate(hoje);
+  return vencISO < hojeISO ? 'vencida' : 'aberta';
 }
 
-function startOfDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
+function toIsoDate(value: string | Date): string {
+  return new Date(value).toISOString().slice(0, 10);
 }
 
 /* ---------------------- Agregação financeira -------------------------- */
@@ -70,8 +71,7 @@ export type ResumoFinanceiro = {
   percentualPago: number;
 };
 
-export function resumoFinanceiro(parcelas: Parcela[]): ResumoFinanceiro {
-  const hoje = new Date();
+export function resumoFinanceiro(parcelas: Parcela[], hoje: Date = new Date()): ResumoFinanceiro {
   let totalPago = 0, totalAberto = 0, totalVencido = 0;
   let proximaParcela: Parcela | undefined;
 
