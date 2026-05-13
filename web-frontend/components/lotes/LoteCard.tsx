@@ -6,33 +6,34 @@ import type { Lote } from '@/lib/drupal/types';
 
 export default function LoteCard({ lote }: { lote: Lote }) {
   return (
-    <article className="border-thick border-border bg-canvas p-5 flex flex-col gap-3">
-      <header className="flex items-center justify-between">
-        <h2 className="text-field uppercase">{lote.titulo}</h2>
+    <article className="group relative flex h-full flex-col gap-5 rounded-card border border-linha bg-branco p-7 transition-all duration-500 ease-out-soft hover:-translate-y-1 hover:border-oliva/30 hover:shadow-card">
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <p className="kicker mb-1">Quadra {lote.quadra} · Lote {lote.numero}</p>
+          <h3 className="font-serif text-[26px] font-medium leading-none text-sepia tracking-tightest">
+            {lote.titulo}
+          </h3>
+        </div>
         <StatusBadge status={lote.status} />
       </header>
 
-      <dl className="grid grid-cols-2 gap-2 text-field-sm">
-        <dt className="uppercase">Quadra</dt>
-        <dd>{lote.quadra}</dd>
-        <dt className="uppercase">Lote</dt>
-        <dd>{lote.numero}</dd>
-        <dt className="uppercase">Metragem</dt>
-        <dd>{lote.metragem} m²</dd>
-        <dt className="uppercase">Valor</dt>
-        <dd>{formatarBRL(lote.valor)}</dd>
+      <dl className="grid grid-cols-2 gap-y-3 border-t border-linha pt-5 text-[14px]">
+        <dt className="kicker">Metragem</dt>
+        <dd className="text-right font-medium text-sepia">{lote.metragem} m²</dd>
+        <dt className="kicker">Valor</dt>
+        <dd className="text-right font-medium text-sepia">{formatarBRL(lote.valor)}</dd>
       </dl>
 
-      <div className="flex flex-col gap-2 mt-2">
+      <div className="mt-auto flex flex-col gap-2">
         <Link
           href={`/lotes/${lote.slug}`}
-          className="text-center border-thick border-border px-4 py-3 text-field-sm uppercase"
+          className="inline-flex items-center justify-center rounded-full border border-sepia/20 px-5 py-3 text-[13px] font-medium uppercase tracking-[0.08em] text-sepia transition-colors hover:bg-sepia hover:text-branco"
         >
           Ver detalhes
         </Link>
         {lote.status === 'disponivel' && (
           <WhatsappButton
-            numero="999999999"
+            numero="5577999999999"
             mensagem={`Olá! Tenho interesse no lote ${lote.titulo} do Porto das Oliveiras.`}
             rotulo="Tenho interesse"
           />

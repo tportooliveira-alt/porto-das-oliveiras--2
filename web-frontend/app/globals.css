@@ -4,21 +4,94 @@
 
 @layer base {
   :root {
-    --color-canvas:     255 255 255;
-    --color-ink:         10  10  10;
-    --color-border:       0   0   0;
-    --color-disponivel:  21 128  61;
-    --color-reservado:  161  98   7;
-    --color-vendido:    153  27  27;
-    --color-action:      21 128  61;
+    /* Paleta — exata do Claude Designer */
+    --oliva:        #4F6E3C;
+    --oliva-escuro: #2C3A24;
+    --terracota:    #C8704F;
+    --terracota-escuro: #B05E3F;
+    --areia:        #F4EDDC;
+    --areia-clara:  #FAF6EA;
+    --branco:       #FFFCF6;
+    --sepia:        #3A2A1F;
+    --sepia-soft:   #6E5B4E;
+    --linha:        #E5DCC6;
+
+    /* Status (mantido pro StatusBadge) */
+    --color-disponivel:  79 110  60;  /* oliva */
+    --color-reservado:  200 112  79;  /* terracota */
+    --color-vendido:     58  42  31;  /* sepia */
+
+    /* Motion */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+    /* Sombras quentes */
+    --shadow-card:  0 44px 88px -28px rgba(58,42,31,0.38), 0 18px 36px -12px rgba(58,42,31,0.18);
+    --shadow-hover: 0 60px 120px -30px rgba(58,42,31,0.45), 0 24px 48px -16px rgba(58,42,31,0.22);
   }
 
   html, body {
-    @apply bg-canvas text-ink antialiased;
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto;
+    background: var(--branco);
+    color: var(--sepia);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   *:focus-visible {
-    @apply outline-none ring-4 ring-ink ring-offset-2 ring-offset-canvas;
+    outline: 2px solid var(--oliva);
+    outline-offset: 3px;
+    border-radius: 2px;
   }
+}
+
+@layer components {
+  /* Fundo de papel — gradient sutil com vinheta nas bordas */
+  .paper {
+    background-color: var(--branco);
+    background-image:
+      radial-gradient(120% 80% at 50% 0%, rgba(255,252,246,0.6) 0%, rgba(255,252,246,0) 60%),
+      radial-gradient(120% 60% at 50% 100%, rgba(58,42,31,0.06) 0%, rgba(58,42,31,0) 55%),
+      radial-gradient(800px 800px at 80% 20%, rgba(244,237,220,0.4) 0%, transparent 70%);
+  }
+
+  /* Kicker — mono uppercase pequeno usado em labels/linhas decorativas */
+  .kicker {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--sepia-soft);
+    font-weight: 500;
+  }
+
+  .divider-v {
+    background: linear-gradient(180deg, transparent 0%, var(--linha) 25%, var(--linha) 75%, transparent 100%);
+  }
+
+  /* Vídeo placeholder — gradient terroso enquanto não tem mp4 */
+  .video-poster {
+    background:
+      radial-gradient(140% 90% at 30% 80%, rgba(79,110,60,0.45) 0%, transparent 60%),
+      radial-gradient(120% 70% at 80% 30%, rgba(200,112,79,0.35) 0%, transparent 55%),
+      linear-gradient(135deg, var(--oliva-escuro) 0%, var(--sepia) 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .video-poster::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,252,246,0.015) 0px, rgba(255,252,246,0.015) 1px, transparent 1px, transparent 3px);
+    pointer-events: none;
+  }
+}
+
+@layer utilities {
+  .font-serif  { font-family: var(--font-serif), "Fraunces", "Georgia", serif; }
+  .font-sans   { font-family: var(--font-sans), ui-sans-serif, system-ui; }
+  .font-mono   { font-family: var(--font-mono), ui-monospace, monospace; }
+  .tracking-tightest { letter-spacing: -0.025em; }
+  .tracking-tighter2 { letter-spacing: -0.022em; }
 }
