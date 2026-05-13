@@ -1,7 +1,9 @@
 import { readFileSync, existsSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 import YAML from 'yaml';
 
-const root = 'C:/Users/Thiago Porto/OneDrive/Documentos/Chacreamento';
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..').replace(/\\/g, '/');
 const BS = String.fromCharCode(92); // single backslash
 
 let problemas = [];

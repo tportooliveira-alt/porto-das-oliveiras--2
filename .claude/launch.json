@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Next.js frontend (porto-das-oliveiras)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000,
+      "cwd": "C:/temp/porto-test"
+    },
+    {
+      "name": "Drupal backend via DDEV (porto-das-oliveiras)",
+      "runtimeExecutable": "ddev",
+      "runtimeArgs": ["start"],
+      "port": 443,
+      "cwd": "C:/Users/Thiago Porto/OneDrive/Documentos/Chacreamento/.claude/worktrees/sweet-dubinsky-a7fa87/web-backend"
+    }
+  ]
+}

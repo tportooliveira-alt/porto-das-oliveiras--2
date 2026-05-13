@@ -75,6 +75,11 @@ final class BoletoSyncService {
       return FALSE;
     }
 
+    if (!$parcela->hasField('field_pago') || !$parcela->hasField('field_data_pagamento')) {
+      $this->logger->error('Parcela @id sem campos esperados — bootstrap do content model não rodou?', ['@id' => $parcela->id()]);
+      return FALSE;
+    }
+
     if ($parcela->get('field_pago')->value) {
       return FALSE; // Idempotência — já marcada como paga.
     }

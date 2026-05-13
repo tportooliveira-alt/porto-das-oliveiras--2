@@ -1,9 +1,11 @@
 import { readFileSync } from 'fs';
 import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 import YAML from 'yaml';
 
-const root = 'C:/Users/Thiago Porto/OneDrive/Documentos/Chacreamento';
-const arquivos = execSync(`find "${root}/web-backend" -name "*.yml" -o -name "*.yaml"`, { encoding: 'utf8' })
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..').replace(/\\/g, '/');
+const arquivos = execSync(`find -L "${root}/web-backend" \\( -name "*.yml" -o -name "*.yaml" \\)`, { encoding: 'utf8' })
   .split('\n').filter(Boolean);
 
 let okCount = 0;

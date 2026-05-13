@@ -17,16 +17,44 @@ yarn-debug.log*
 .env.*.local
 !.env.example
 
-# Drupal
+# Drupal — gerados pelo composer install / scaffold
 web-backend/web/sites/*/files/
 web-backend/web/sites/*/private/
 web-backend/web/sites/*/settings.local.php
+web-backend/web/sites/*/settings.ddev.php
+web-backend/web/sites/*/settings.php
 web-backend/vendor/
 web-backend/web/core/
 web-backend/web/modules/contrib/
 web-backend/web/themes/contrib/
 web-backend/web/libraries/
-web-backend/web/profiles/contrib/
+web-backend/web/profiles/
+
+# Scaffolds (regenerados via `ddev composer install`)
+web-backend/.editorconfig
+web-backend/.gitattributes
+web-backend/recipes/
+web-backend/web/index.php
+web-backend/web/update.php
+web-backend/web/autoload.php
+web-backend/web/.csslintrc
+web-backend/web/.eslintignore
+web-backend/web/.eslintrc.json
+web-backend/web/.htaccess
+web-backend/web/.ht.router.php
+web-backend/web/INSTALL.txt
+web-backend/web/README.md
+web-backend/web/example.gitignore
+web-backend/web/robots.txt
+web-backend/web/modules/README.txt
+web-backend/web/themes/README.txt
+web-backend/web/sites/README.txt
+web-backend/web/sites/development.services.yml
+web-backend/web/sites/example.sites.php
+web-backend/web/sites/example.settings.local.php
+web-backend/web/sites/*/default.services.yml
+web-backend/web/sites/*/default.settings.php
+web-backend/web/sites/*/example.settings.local.php
 
 # DDEV
 .ddev/.dbimports/

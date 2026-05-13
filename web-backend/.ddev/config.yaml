@@ -18,11 +18,3 @@ disable_settings_management: false
 performance_mode: "global"
 omit_containers: []
 corepack_enable: false
-
-# CORS para permitir consumo pelo Next.js em desenvolvimento.
-# Em produção, restrinja a origem para o domínio da Vercel.
-web_extra_exposed_ports:
-  - name: drupal-https
-    container_port: 443
-    http_port: 80
-    https_port: 443

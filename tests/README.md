@@ -5,17 +5,27 @@ o `package.json` do `web-frontend`.
 
 ## Como rodar
 
+Os scripts resolvem o `root` relativo a si mesmos (`tests/..`), então precisam
+encontrar `web-backend/` "ao lado" da pasta `tests/`. Como o OneDrive trava o
+`npm install`, a estratégia é:
+
 ```powershell
-# Instalar deps em pasta fora do OneDrive (OneDrive trava o npm)
-cp -r web-frontend C:/temp/porto-test
-cd C:/temp/porto-test
+# 1. Setup único — fora do OneDrive
+mkdir C:\temp\porto-test
+cp -r web-frontend\* C:\temp\porto-test\        # node_modules sairá aqui
+cd C:\temp\porto-test
 npm install --no-audit --no-fund
-cp ../../tests/*.mjs ./
+
+# 2. Trazer tests/ e web-backend para "ao lado" via cópia ou junction
+mkdir tests
+cp <repo>\tests\*.mjs tests\
+cmd /c mklink /J web-backend <repo>\web-backend  # junction não precisa admin
 ```
 
-Depois cada teste:
+Rodar cada teste a partir de **Git Bash** (precisa do `find` Unix com `-L`):
 
-```powershell
+```bash
+cd /c/temp/porto-test/tests
 node yaml-check.mjs      # Fase 3 — sintaxe YAML
 node composer-check.mjs  # Fase 4 — composer.json estrutura
 node php-check.mjs       # Fase 5 — services/routing vs classes

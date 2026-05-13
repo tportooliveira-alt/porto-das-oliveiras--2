@@ -1,7 +1,9 @@
 import { readFileSync, readdirSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 import YAML from 'yaml';
 
-const root = 'C:/Users/Thiago Porto/OneDrive/Documentos/Chacreamento';
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..').replace(/\\/g, '/');
 const sync = `${root}/web-backend/config/sync`;
 
 const arquivos = readdirSync(sync).filter(f => f.endsWith('.yml'));

@@ -40,7 +40,7 @@ final class BankingApiClient {
   ) {
     $this->logger = $loggerFactory->get('porto_banking');
     $config = $configFactory->get('porto_banking.settings');
-    $this->baseUri = (string) $config->get('base_uri');
+    $this->baseUri = rtrim((string) $config->get('base_uri'), '/');
     $this->keyId   = (string) $config->get('credentials_key_id');
   }
 
@@ -60,7 +60,7 @@ final class BankingApiClient {
       ]);
 
       $payload = json_decode((string) $response->getBody(), TRUE, 512, JSON_THROW_ON_ERROR);
-      return $payload['data'] ?? [];
+      return is_array($payload) ? ($payload['data'] ?? []) : [];
     }
     catch (RequestException $e) {
       $this->logger->error('Falha HTTP @code consultando boletos: @msg', [
@@ -113,6 +113,9 @@ final class BankingApiClient {
       ]);
 
       $payload = json_decode((string) $response->getBody(), TRUE, 512, JSON_THROW_ON_ERROR);
+      if (!is_array($payload)) {
+        throw new BankingApiException('Resposta OAuth não é um objeto JSON.');
+      }
       $novoToken    = (string) ($payload['access_token'] ?? '');
       $tempoVidaSeg = (int)    ($payload['expires_in']   ?? 300);
 

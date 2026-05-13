@@ -1,0 +1,32 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Hooks do porto_auth.
+ */
+
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Session\AccountInterface;
+
+/**
+ * Implements hook_node_access().
+ *
+ * Conteúdo financeiro (parcela, contrato) não pode ser visto por anonymous,
+ * mesmo com a permissão "access content". Login obrigatório.
+ */
+function porto_auth_node_access(EntityInterface $node, string $op, AccountInterface $account): AccessResult {
+  if ($op !== 'view' || !$node->id()) {
+    return AccessResult::neutral();
+  }
+  if (!in_array($node->bundle(), ['parcela', 'contrato'], TRUE)) {
+    return AccessResult::neutral();
+  }
+  if ($account->isAnonymous()) {
+    return AccessResult::forbidden('Conteúdo financeiro exige autenticação.')
+      ->addCacheContexts(['user.roles:anonymous']);
+  }
+  return AccessResult::neutral();
+}

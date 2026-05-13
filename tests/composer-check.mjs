@@ -1,6 +1,9 @@
 import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 
-const path = 'C:/Users/Thiago Porto/OneDrive/Documentos/Chacreamento/web-backend/composer.json';
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..').replace(/\\/g, '/');
+const path = `${root}/web-backend/composer.json`;
 let composer;
 try {
   composer = JSON.parse(readFileSync(path, 'utf8'));

@@ -78,12 +78,15 @@ foreach ([
                  'settings' => ['datetime_type' => 'date']],
    'field'   => ['bundle' => 'contrato', 'label' => 'Data de assinatura', 'required' => true]],
   ['storage' => ['field_name' => 'field_status_contrato', 'entity_type' => 'node', 'type' => 'list_string', 'cardinality' => 1,
-                 'settings' => ['allowed_values' => [
-                   ['value' => 'ativo',         'label' => 'Ativo'],
-                   ['value' => 'quitado',       'label' => 'Quitado'],
-                   ['value' => 'inadimplente',  'label' => 'Inadimplente'],
-                   ['value' => 'cancelado',     'label' => 'Cancelado'],
-                 ]]],
+                 'settings' => [
+                   'allowed_values' => [
+                     'ativo'        => 'Ativo',
+                     'quitado'      => 'Quitado',
+                     'inadimplente' => 'Inadimplente',
+                     'cancelado'    => 'Cancelado',
+                   ],
+                   'allowed_values_function' => '',
+                 ]],
    'field'   => ['bundle' => 'contrato', 'label' => 'Status', 'required' => true, 'default_value' => [['value' => 'ativo']]]],
   ['storage' => ['field_name' => 'field_arquivo_contrato','entity_type' => 'node', 'type' => 'file', 'cardinality' => 1,
                  'settings' => ['uri_scheme' => 'private', 'file_extensions' => 'pdf doc docx']],
