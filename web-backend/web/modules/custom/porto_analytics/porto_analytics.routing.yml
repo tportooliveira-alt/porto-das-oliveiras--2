@@ -5,6 +5,28 @@ porto_analytics.track:
     _format: json
   methods: [POST]
   requirements:
-    _access: 'TRUE'  # anonymous OK — anti-abuse via rate limit no Next.js
+    _access: 'TRUE'
+  options:
+    no_cache: TRUE
+
+porto_analytics.admin_analytics:
+  path: '/api/admin/analytics'
+  defaults:
+    _controller: '\Drupal\porto_analytics\Controller\AdminAnalyticsController::analytics'
+    _format: json
+  methods: [GET]
+  requirements:
+    _user_is_logged_in: 'TRUE'
+  options:
+    no_cache: TRUE
+
+porto_analytics.admin_kpis:
+  path: '/api/admin/kpis'
+  defaults:
+    _controller: '\Drupal\porto_analytics\Controller\AdminAnalyticsController::kpis'
+    _format: json
+  methods: [GET]
+  requirements:
+    _user_is_logged_in: 'TRUE'
   options:
     no_cache: TRUE
