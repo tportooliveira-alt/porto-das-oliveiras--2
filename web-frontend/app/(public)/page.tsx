@@ -9,9 +9,10 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* TODO: passar videoSrc + videoPoster quando o vídeo do cliente chegar.
-          Ex.: <Hero videoSrc="/video/sobrevoo.mp4" videoPoster="/video/poster.webp" /> */}
-      <Hero />
+      {/* Vídeo gerado no Veo 3.1 (Google Vids/Flow):
+          frame inicial = foto real do canteiro hoje (estrada de terra vermelha)
+          transição → bairro entregue + Aeroporto Glauber Rocha + porto seco */}
+      <Hero videoSrc="/video/sobrevoo.mp4" />
 
       <section className="mx-auto max-w-7xl px-6 py-20 lg:py-28" aria-labelledby="lotes-titulo">
         <div className="mb-10 flex items-end justify-between">
