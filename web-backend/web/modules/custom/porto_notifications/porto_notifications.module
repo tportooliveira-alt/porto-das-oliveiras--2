@@ -1,0 +1,155 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Hooks do porto_notifications.
+ *
+ * - hook_mail() prepara assunto + corpo de cada email.
+ * - hook_cron() dispara lembretes diários de parcelas vencendo.
+ * - hook_ENTITY_TYPE_update() dispara notificação quando parcela é
+ *   marcada como paga ou contrato é ativado.
+ */
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_mail().
+ *
+ * Cada key tem seu próprio subject + body. Texto em PT-BR, plain text
+ * (clientes de email do interior costumam não renderizar HTML bem).
+ */
+function porto_notifications_mail(string $key, array &$message, array $params): void {
+  $assinatura = "\n--\nEquipe Porto das Oliveiras\nVitória da Conquista — BA\nhttps://wa.me/5577999999999\n";
+
+  switch ($key) {
+    case 'parcela_vencendo':
+      $venc = !empty($params['parcela_venc']) ? date('d/m/Y', strtotime($params['parcela_venc'])) : '—';
+      $valor = number_format((float) ($params['parcela_valor'] ?? 0), 2, ',', '.');
+      $numero = (int) ($params['parcela_numero'] ?? 0);
+      $dias = (int) ($params['dias_ate_prazo'] ?? 0);
+
+      $message['subject'] = "Parcela $numero vence em $dias dias — Porto das Oliveiras";
+      $message['body'][] = "Olá, " . ($params['cliente_nome'] ?? 'cliente') . ",";
+      $message['body'][] = "Passando para lembrar: sua parcela $numero do contrato no Porto das Oliveiras vence em $dias dias ($venc).";
+      $message['body'][] = "Valor: R\$ $valor";
+      $message['body'][] = "";
+      $message['body'][] = "Você pode baixar o boleto direto no painel:";
+      $message['body'][] = (\Drupal::request()->getSchemeAndHttpHost() ?? '') . "/parcelas";
+      $message['body'][] = $assinatura;
+      break;
+
+    case 'parcela_paga':
+      $valor = number_format((float) ($params['parcela_valor'] ?? 0), 2, ',', '.');
+      $data = !empty($params['data_pagamento']) ? date('d/m/Y', strtotime($params['data_pagamento'])) : 'hoje';
+      $numero = (int) ($params['parcela_numero'] ?? 0);
+
+      $message['subject'] = "Parcela $numero confirmada — Porto das Oliveiras";
+      $message['body'][] = "Olá, " . ($params['cliente_nome'] ?? 'cliente') . ",";
+      $message['body'][] = "Confirmamos o pagamento da sua parcela $numero (R\$ $valor) em $data.";
+      $message['body'][] = "Obrigado pela pontualidade!";
+      $message['body'][] = $assinatura;
+      break;
+
+    case 'contrato_ativado':
+      $valor = number_format((float) ($params['valor_total'] ?? 0), 2, ',', '.');
+      $data = !empty($params['data_assinatura']) ? date('d/m/Y', strtotime($params['data_assinatura'])) : '—';
+
+      $message['subject'] = "Bem-vindo ao Porto das Oliveiras — seu contrato está ativo";
+      $message['body'][] = "Olá, " . ($params['cliente_nome'] ?? 'cliente') . ",";
+      $message['body'][] = "Seu contrato '" . ($params['contrato_titulo'] ?? '') . "' foi ativado em $data.";
+      $message['body'][] = "Valor total: R\$ $valor";
+      $message['body'][] = "";
+      $message['body'][] = "Você já pode acompanhar contratos, parcelas e documentos no seu painel.";
+      $message['body'][] = $assinatura;
+      break;
+  }
+}
+
+/**
+ * Implements hook_cron().
+ *
+ * Roda 1× por dia (Drupal cron deve estar agendado no DDEV/produção).
+ * Procura parcelas que vencem em 7 dias e em 1 dia e dispara lembretes.
+ * Usa State para evitar enviar o mesmo lembrete múltiplas vezes no dia.
+ */
+function porto_notifications_cron(): void {
+  $state = \Drupal::state();
+  $ultimo = $state->get('porto_notifications.ultimo_lembrete_diario', 0);
+  $hoje   = (int) (\Drupal::time()->getRequestTime() / 86400);
+
+  if ($ultimo === $hoje) return; // já rodou hoje
+  $state->set('porto_notifications.ultimo_lembrete_diario', $hoje);
+
+  $logger = \Drupal::logger('porto_notifications');
+  $mailer = \Drupal::service('porto_notifications.mailer');
+  $storage = \Drupal::entityTypeManager()->getStorage('node');
+
+  foreach ([7, 1] as $dias) {
+    $alvo = date('Y-m-d', strtotime("+$dias day"));
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', 'parcela')
+      ->condition('status', 1)
+      ->condition('field_pago', 0)
+      ->condition('field_vencimento', $alvo)
+      ->execute();
+
+    if (!$ids) continue;
+
+    $logger->info('Disparando @n lembretes (@dias dia(s) até vencimento).', [
+      '@n'    => count($ids),
+      '@dias' => $dias,
+    ]);
+
+    foreach ($storage->loadMultiple($ids) as $parcela) {
+      $mailer->parcelaVencendo($parcela, $dias);
+    }
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_update() for node entities.
+ *
+ * Quando uma parcela é marcada como paga, dispara email de confirmação.
+ * Quando um contrato é ativado (status_contrato='ativo' criado ou
+ * mudado para 'ativo'), notifica boas-vindas.
+ */
+function porto_notifications_node_update(EntityInterface $node): void {
+  if (!$node instanceof NodeInterface) return;
+  $mailer = \Drupal::service('porto_notifications.mailer');
+
+  if ($node->bundle() === 'parcela') {
+    $original = $node->original ?? NULL;
+    $pagouAgora = !$original
+      ? FALSE
+      : !$original->get('field_pago')->value && $node->get('field_pago')->value;
+    if ($pagouAgora) {
+      $mailer->parcelaPaga($node);
+    }
+  }
+
+  if ($node->bundle() === 'contrato') {
+    $original = $node->original ?? NULL;
+    $virouAtivo = $node->get('field_status_contrato')->value === 'ativo'
+      && (!$original || $original->get('field_status_contrato')->value !== 'ativo');
+    if ($virouAtivo) {
+      $mailer->contratoAtivado($node);
+    }
+  }
+}
+
+/**
+ * Implements hook_node_insert().
+ *
+ * Contratos criados já com status=ativo também disparam o welcome.
+ */
+function porto_notifications_node_insert(EntityInterface $node): void {
+  if (!$node instanceof NodeInterface) return;
+  if ($node->bundle() !== 'contrato') return;
+  if ($node->get('field_status_contrato')->value !== 'ativo') return;
+
+  \Drupal::service('porto_notifications.mailer')->contratoAtivado($node);
+}

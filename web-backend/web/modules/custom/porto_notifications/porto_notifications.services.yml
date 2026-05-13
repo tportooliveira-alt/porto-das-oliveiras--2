@@ -1,0 +1,8 @@
+services:
+  porto_notifications.mailer:
+    class: Drupal\porto_notifications\Service\Mailer
+    arguments:
+      - '@plugin.manager.mail'
+      - '@language_manager'
+      - '@logger.factory'
+      - '@module_handler'

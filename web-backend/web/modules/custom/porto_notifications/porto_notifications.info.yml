@@ -1,0 +1,9 @@
+name: 'Porto Notifications'
+type: module
+description: 'Notificações transacionais por email (parcela vencendo, contrato assinado, boleto pago).'
+core_version_requirement: ^11
+package: 'Porto das Oliveiras'
+dependencies:
+  - drupal:node
+  - drupal:user
+  - drupal:system
