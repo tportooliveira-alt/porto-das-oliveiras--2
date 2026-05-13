@@ -1,0 +1,10 @@
+porto_auth.minhas_roles:
+  path: '/api/minhas-roles'
+  defaults:
+    _controller: '\Drupal\porto_auth\Controller\PerfilController::minhasRoles'
+    _format: json
+  methods: [GET]
+  requirements:
+    _user_is_logged_in: 'TRUE'
+  options:
+    no_cache: TRUE
