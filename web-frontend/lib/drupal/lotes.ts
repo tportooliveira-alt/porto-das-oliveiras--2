@@ -27,20 +27,74 @@ function mapearLote(id: string, attrs: LoteAttrs): Lote {
   };
 }
 
-type ListarOpcoes = {
-  limit?: number;
-  status?: StatusLote;
+export type OrdenacaoLote =
+  | 'recente'
+  | 'preco-asc'
+  | 'preco-desc'
+  | 'metragem-asc'
+  | 'metragem-desc';
+
+const SORT_MAP: Record<OrdenacaoLote, string> = {
+  'recente':        '-created',
+  'preco-asc':       'field_valor',
+  'preco-desc':     '-field_valor',
+  'metragem-asc':    'field_metragem',
+  'metragem-desc':  '-field_metragem',
 };
 
-export async function listarLotes({ limit = 24, status }: ListarOpcoes = {}): Promise<Lote[]> {
+export type FiltrosLote = {
+  limit?: number;
+  status?: StatusLote;
+  quadra?: string;
+  precoMin?: number;
+  precoMax?: number;
+  metragemMin?: number;
+  metragemMax?: number;
+  sort?: OrdenacaoLote;
+};
+
+/**
+ * Constrói filtros condition-group do JSON:API para campos numéricos.
+ * Drupal aceita operadores como >=, <=, BETWEEN via condition groups.
+ */
+function addRangeFilter(
+  params: URLSearchParams,
+  groupId: string,
+  fieldPath: string,
+  value: number,
+  operator: '>=' | '<=' | '=' | 'BETWEEN'
+): void {
+  params.set(`filter[${groupId}][condition][path]`, fieldPath);
+  params.set(`filter[${groupId}][condition][operator]`, operator);
+  params.set(`filter[${groupId}][condition][value]`, String(value));
+}
+
+export async function listarLotes(filtros: FiltrosLote = {}): Promise<Lote[]> {
+  const {
+    limit = 24,
+    status,
+    quadra,
+    precoMin,
+    precoMax,
+    metragemMin,
+    metragemMax,
+    sort = 'recente',
+  } = filtros;
+
   const params = new URLSearchParams();
   params.set('page[limit]', String(limit));
-  params.set('sort', '-created');
+  params.set('sort', SORT_MAP[sort]);
   params.set(
     'fields[node--lote]',
     'title,field_quadra,field_numero,field_metragem,field_valor,field_status,field_descricao,path'
   );
+
   if (status) params.set('filter[field_status]', status);
+  if (quadra) params.set('filter[field_quadra]', quadra);
+  if (precoMin !== undefined)    addRangeFilter(params, 'pmin', 'field_valor',    precoMin,    '>=');
+  if (precoMax !== undefined)    addRangeFilter(params, 'pmax', 'field_valor',    precoMax,    '<=');
+  if (metragemMin !== undefined) addRangeFilter(params, 'mmin', 'field_metragem', metragemMin, '>=');
+  if (metragemMax !== undefined) addRangeFilter(params, 'mmax', 'field_metragem', metragemMax, '<=');
 
   const resposta = await drupalFetch<JsonApiCollection<LoteAttrs>>(
     `/jsonapi/node/lote?${params.toString()}`,
@@ -73,5 +127,27 @@ export async function obterLotePorSlug(slug: string): Promise<Lote | null> {
   }
   catch {
     return null;
+  }
+}
+
+/**
+ * Retorna a lista de quadras existentes (para popular o filtro Quadra).
+ * Cache curto — atualiza a cada 5 min.
+ */
+export async function listarQuadras(): Promise<string[]> {
+  const params = new URLSearchParams();
+  params.set('page[limit]', '200');
+  params.set('fields[node--lote]', 'field_quadra');
+
+  try {
+    const resposta = await drupalFetch<JsonApiCollection<Pick<LoteAttrs, 'field_quadra'>>>(
+      `/jsonapi/node/lote?${params.toString()}`,
+      { revalidate: 300 }
+    );
+    const quadras = new Set(resposta.data.map((n) => n.attributes.field_quadra));
+    return Array.from(quadras).sort();
+  }
+  catch {
+    return [];
   }
 }
