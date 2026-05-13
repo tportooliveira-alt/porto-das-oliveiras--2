@@ -43,6 +43,18 @@
     outline-offset: 3px;
     border-radius: 2px;
   }
+
+  /* Respeitar preferência de menos animação (a11y) */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer components {

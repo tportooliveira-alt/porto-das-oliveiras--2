@@ -1,5 +1,6 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { decode } from 'next-auth/jwt';
+import { logger } from '@/lib/logger';
 
 /**
  * Cliente HTTP server-side para a API JSON:API do Drupal.
@@ -70,12 +71,14 @@ async function tentativa<T>(
   caminho: string,
   opcoes: Opcoes,
   cabecalhos: Record<string, string>,
+  requestId: string | null,
 ): Promise<T> {
   const { revalidate, timeoutMs = DEFAULT_TIMEOUT_MS, ...resto } = opcoes;
 
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
 
+  const inicio = Date.now();
   try {
     const resposta = await fetch(`${BASE}${caminho}`, {
       ...resto,
@@ -89,15 +92,39 @@ async function tentativa<T>(
             : undefined,
     });
 
+    const latency_ms = Date.now() - inicio;
+
     if (!resposta.ok) {
       const body = await resposta.text();
+      logger.warn('drupal_fetch_falhou', {
+        request_id: requestId,
+        path: caminho,
+        status: resposta.status,
+        latency_ms,
+        body_preview: body.slice(0, 200),
+      });
       throw new DrupalError(caminho, resposta.status, body);
     }
+
+    logger.debug('drupal_fetch_ok', {
+      request_id: requestId,
+      path: caminho,
+      status: resposta.status,
+      latency_ms,
+    });
 
     return resposta.json() as Promise<T>;
   }
   finally {
     clearTimeout(timer);
+  }
+}
+
+function obterRequestId(): string | null {
+  try {
+    return headers().get('x-request-id');
+  } catch {
+    return null;
   }
 }
 
@@ -115,11 +142,13 @@ export async function drupalFetch<T>(caminho: string, opcoes: Opcoes = {}): Prom
     if (jwt) cabecalhos.Authorization = `Bearer ${jwt}`;
   }
 
+  const requestId = obterRequestId();
+
   // Retry curto pra erros 5xx e timeouts. 4xx nunca repete (vai falhar igual).
   let ultimoErro: unknown;
   for (let i = 0; i <= MAX_RETRIES; i++) {
     try {
-      return await tentativa<T>(caminho, resto, cabecalhos);
+      return await tentativa<T>(caminho, resto, cabecalhos, requestId);
     }
     catch (e) {
       ultimoErro = e;
@@ -128,11 +157,13 @@ export async function drupalFetch<T>(caminho: string, opcoes: Opcoes = {}): Prom
         throw e;
       }
       if (i < MAX_RETRIES) {
+        logger.info('drupal_retry', { request_id: requestId, path: caminho, tentativa: i + 1 });
         // Backoff curto: 250ms. Não queremos atrasar muito o SSR.
         await new Promise((r) => setTimeout(r, 250));
         continue;
       }
     }
   }
+  logger.error('drupal_fetch_esgotou_retries', ultimoErro, { request_id: requestId, path: caminho });
   throw ultimoErro;
 }

@@ -23,6 +23,12 @@ export default async function ClienteLayout({ children }: { children: React.Reac
 
   return (
     <div className="flex min-h-dvh flex-col bg-branco">
+      <a
+        href="#conteudo"
+        className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-50 focus-visible:rounded-full focus-visible:bg-sepia focus-visible:px-5 focus-visible:py-3 focus-visible:text-[13px] focus-visible:font-medium focus-visible:uppercase focus-visible:tracking-[0.1em] focus-visible:text-branco"
+      >
+        Pular para o conteúdo
+      </a>
       <header className="border-b border-linha bg-branco/90 backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-5">
           <div className="flex items-center gap-8">
@@ -69,7 +75,7 @@ export default async function ClienteLayout({ children }: { children: React.Reac
         </nav>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-12 lg:py-16">{children}</main>
+      <main id="conteudo" className="mx-auto w-full max-w-7xl flex-1 px-6 py-12 lg:py-16">{children}</main>
 
       <footer className="border-t border-linha bg-areia-clara/40">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-8 sm:flex-row sm:items-center sm:justify-between">
